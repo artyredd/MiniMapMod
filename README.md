@@ -19,10 +19,10 @@ Adds a contemporary Minimap to the game.
 - Place MiniMapMod.dll into your BepInEx/plugins folder.
 
 ### How to Use
-- Use M to hide or show the minimap. 
+- Use 'M' to hide or show the minimap. 
 
 ### Config
-No Config applicable a this time
+No config applicable at this time
 
 ### Upcoming Changes
 None - Final Release
@@ -34,9 +34,12 @@ https://www.autism.org/donate-autism-research-institute/
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
-Hotfix 2.0.1
+Hotfix 2.0.2
 - Fixed critical bug duplicating icons on the minimap when using interactables
+- Typo in change log
+
 Final Release 2.0.0
-- Completely Re-Implemented minimap
+- Completely Re-Implemented minimap  
+
 First Release 1.0.0
 - Implemented MiniMap
