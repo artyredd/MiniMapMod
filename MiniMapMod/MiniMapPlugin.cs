@@ -36,6 +36,7 @@ namespace MiniMapMod
             Log.Init(Logger);
 
             GlobalEventManager.onCharacterDeathGlobal += OnCharacterDeath;
+            GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
         }
 
         private void OnCharacterDeath(object o)
@@ -51,15 +52,32 @@ namespace MiniMapMod
             if (Input.GetKeyDown(KeyCode.M))
             {
                 Enable = !Enable;
+
+                if (Enable == false)
+                {
+                    Reset();
+                }
             }
 
             if (Enable)
             {
-                Log.LogInfo($"Minimap Created({Minimap.Created})");
-
                 if (Minimap.Created)
                 {
-                    Minimap.SetRotation(Camera.main.transform.rotation);
+                    if (Camera.main == null)
+                    {
+                        Reset();
+                        return;
+                    }
+
+                    try
+                    {
+                        Minimap.SetRotation(Camera.main.transform.rotation);
+                    }
+                    catch (NullReferenceException)
+                    {
+                        Reset();
+                        return;
+                    }
 
                     for (int i = 0; i < TrackedObjects.Count; i++)
                     {
@@ -67,7 +85,6 @@ namespace MiniMapMod
 
                         if (item.MinimapTransform == null)
                         {
-                            Log.LogInfo($"Created icon for {item.gameObject.name}");
                             item.MinimapTransform = Minimap.CreateIcon(item.InteractableType, WorldToMinimap(item.gameObject.transform.position) - WorldToMinimap(Camera.main.transform.position), this.SpriteManager);
                         }
                         else
@@ -103,6 +120,13 @@ namespace MiniMapMod
             }
         }
 
+        private void Reset()
+        {
+            TrackedObjects.Clear();
+            ResetGlobalDimensions();
+            Minimap.Destroy();
+        }
+
         private void ScanScene()
         {
             ResetGlobalDimensions();
@@ -128,6 +152,10 @@ namespace MiniMapMod
             RegisterTypes(typeof(ShopTerminalBehavior), InteractableKind.Chest);
 
             RegisterTypes(typeof(BarrelInteraction), InteractableKind.Utility);
+
+            RegisterTypes(typeof(ScrapperController), InteractableKind.Utility);
+
+            RegisterTypes(typeof(GenericInteraction), InteractableKind.Special);
 
             // set the values used to calculate the scaled positions in the minimap for the items
 

@@ -154,7 +154,7 @@ namespace MiniMapLibrary
                 mask.AddComponent<CanvasRenderer>();
                 //mask.AddComponent<Image>();
 
-                //mask.AddComponent<Mask>();
+                mask.AddComponent<Mask>();
 
                 LayoutElement element = mask.AddComponent<LayoutElement>();
 
