@@ -41,8 +41,7 @@ namespace MiniMapMod
 
         private void OnCharacterDeath(object o)
         {
-            Minimap.Destroy();
-            ResetGlobalDimensions();
+            Reset();
         }
 
 
@@ -129,6 +128,8 @@ namespace MiniMapMod
 
         private void ScanScene()
         {
+            Minimap.DestroyIcons();
+
             ResetGlobalDimensions();
 
             TrackedObjects.Clear();
@@ -151,9 +152,11 @@ namespace MiniMapMod
 
             RegisterTypes(typeof(ShopTerminalBehavior), InteractableKind.Chest);
 
-            RegisterTypes(typeof(BarrelInteraction), InteractableKind.Utility);
+            RegisterTypes(typeof(BarrelInteraction), InteractableKind.Barrel);
 
             RegisterTypes(typeof(ScrapperController), InteractableKind.Utility);
+
+            RegisterTypes(typeof(SummonMasterBehavior), InteractableKind.Drone);
 
             RegisterTypes(typeof(GenericInteraction), InteractableKind.Special);
 
@@ -199,16 +202,9 @@ namespace MiniMapMod
         {
             foreach (var item in objects)
             {
-                InteractableKind type = Kind;
-
-                if (Kind == InteractableKind.none)
+                if (Kind != InteractableKind.none)
                 {
-                    type = Settings.GetInteractableType(item.name);
-                }
-
-                if (type != InteractableKind.none)
-                {
-                    TrackedObjects.Add(new TrackedObject(type, item, null));
+                    TrackedObjects.Add(new TrackedObject(Kind, item, null));
 
                     CheckPositionConstraints(item.transform.position);
                 }

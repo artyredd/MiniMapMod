@@ -16,6 +16,8 @@ namespace MiniMapLibrary
         Shrine = 1 << 4,
         Special = 1 << 5,
         Player = 1 << 6,
+        Drone = 1 << 7,
+        Barrel = 1 << 8,
         All = 0b_1111_1
     }
 }

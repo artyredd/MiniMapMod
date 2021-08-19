@@ -13,7 +13,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\..\_Programming\Repos\Unity Projects\MiniMapLibrary\MiniMapLibrary.csproj" />
+		<ProjectReference Include="..\MiniMapLibrary\MiniMapLibrary.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
