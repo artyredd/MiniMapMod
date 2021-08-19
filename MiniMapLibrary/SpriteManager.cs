@@ -29,12 +29,14 @@ namespace MiniMapLibrary
             }
 
             Add(InteractableKind.Primary, DefaultResourcePath);
-            Add(InteractableKind.Shrine, DefaultResourcePath);
+            Add(InteractableKind.Shrine, "Textures/MiscIcons/texShrineIconOutlined");
             Add(InteractableKind.Special, DefaultResourcePath);
-            Add(InteractableKind.Teleporter, DefaultResourcePath);
-            Add(InteractableKind.Chest, DefaultResourcePath);
-            Add(InteractableKind.Utility, DefaultResourcePath);
-            Add(InteractableKind.Player, DefaultResourcePath);
+            Add(InteractableKind.Teleporter, "Textures/MiscIcons/texTeleporterIconOutlined");
+            Add(InteractableKind.Chest, "Textures/MiscIcons/texInventoryIconOutlined");
+            Add(InteractableKind.Drone, "Textures/MiscIcons/texDroneIconOutlined");
+            Add(InteractableKind.Utility, "Textures/MiscIcons/texLootIconOutlined");
+            Add(InteractableKind.Barrel, "Textures/MiscIcons/texBarrelIcon");
+            Add(InteractableKind.Player, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.All, DefaultResourcePath);
         }
 
@@ -56,9 +58,11 @@ namespace MiniMapLibrary
                 {
                     return GetOrCache(path);
                 }
+
+                throw new Exception($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
             }
 
-            return null;
+            throw new Exception($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
         }
 
         private Sprite? GetOrCache(string Path)

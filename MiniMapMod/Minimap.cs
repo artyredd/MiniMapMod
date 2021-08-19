@@ -37,9 +37,9 @@ namespace MiniMapLibrary
 
             gameObject.transform.localScale = new Vector3(1, 1, 1);
 
-            CreatePlayerIcon(spriteManager);
-
             CreateIconContainer();
+
+            CreatePlayerIcon(spriteManager);
         }
 
         public void Destroy()
@@ -56,6 +56,14 @@ namespace MiniMapLibrary
             ContainerTransform = null;
 
             Created = false;
+        }
+
+        public void DestroyIcons()
+        {
+            foreach (Transform child in Container.transform)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
         }
 
         public void Zoom(int ZoomLevel)
@@ -118,6 +126,8 @@ namespace MiniMapLibrary
         {
             GameObject playerIcon = CreateIcon(InteractableKind.Player, spriteManager.GetSprite(InteractableKind.Player));
 
+            playerIcon.GetComponent<Image>().color = Settings.PlayerIconColor;
+
             playerIcon.transform.SetParent(gameObject.transform);
 
             playerIcon.transform.localPosition = new Vector3(0, 0, 0);
@@ -137,7 +147,12 @@ namespace MiniMapLibrary
                 transform.sizeDelta = new Vector2(size.Width, size.Height);
 
                 icon.AddComponent<CanvasRenderer>();
-                icon.AddComponent<Image>().sprite = iconTexture;
+
+                var image = icon.AddComponent<Image>();
+
+                image.sprite = iconTexture;
+
+                image.color = Settings.DefaultIconColor;
             });
         }
 
@@ -152,9 +167,12 @@ namespace MiniMapLibrary
                 newTransform.sizeDelta = new Vector2(Settings.ViewfinderSize.Width, Settings.ViewfinderSize.Height);
 
                 mask.AddComponent<CanvasRenderer>();
-                //mask.AddComponent<Image>();
 
-                mask.AddComponent<Mask>();
+                mask.AddComponent<Image>();
+
+                var maskComponent = mask.AddComponent<Mask>();
+
+                maskComponent.showMaskGraphic = false;
 
                 LayoutElement element = mask.AddComponent<LayoutElement>();
 
