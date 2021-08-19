@@ -36,7 +36,7 @@ namespace MiniMapMod
             Log.Init(Logger);
 
             GlobalEventManager.onCharacterDeathGlobal += OnCharacterDeath;
-            GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
+            GlobalEventManager.OnInteractionsGlobal += (x, y, z) => Reset();
         }
 
         private void OnCharacterDeath(object o)

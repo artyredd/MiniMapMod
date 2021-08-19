@@ -34,6 +34,8 @@ https://www.autism.org/donate-autism-research-institute/
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Hotfix 2.0.1
+- Fixed critical bug duplicating icons on the minimap when using interactables
 Final Release 2.0.0
 - Completely Re-Implemented minimap
 First Release 1.0.0
