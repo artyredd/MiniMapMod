@@ -29,13 +29,7 @@ namespace MiniMapLibrary
 
             gameObject = CreateMask();
 
-            gameObject.transform.SetParent(Parent.transform);
-
-            gameObject.transform.localRotation = Quaternion.identity;
-
-            gameObject.transform.localPosition = new Vector3(0, 0, 0);
-
-            gameObject.transform.localScale = new Vector3(1, 1, 1);
+            SetParent(gameObject, Parent);
 
             CreateIconContainer();
 
@@ -66,16 +60,6 @@ namespace MiniMapLibrary
             }
         }
 
-        public void Zoom(int ZoomLevel)
-        {
-            if (ContainerTransform != null)
-            {
-                ZoomLevel = Math.Max(1, ZoomLevel);
-
-                ContainerTransform.localScale = new Vector3(ZoomLevel, ZoomLevel, ZoomLevel);
-            }
-        }
-
         public void SetRotation(Quaternion rotation)
         {
             var euler = rotation.eulerAngles;
@@ -91,11 +75,7 @@ namespace MiniMapLibrary
 
             transform.localPosition = minimapPosition;
 
-            transform.SetParent(ContainerTransform);
-
-            transform.localRotation = Quaternion.identity;
-            transform.localPosition = new Vector3(0, 0, 0);
-            transform.localScale = new Vector3(1, 1, 1);
+            SetParent(transform, ContainerTransform);
 
             return transform;
         }
@@ -111,13 +91,7 @@ namespace MiniMapLibrary
                 ContainerTransform.sizeDelta = new(Settings.MinimapSize.Width, Settings.MinimapSize.Height);
             });
 
-            container.transform.SetParent(gameObject.transform);
-
-            ContainerTransform.rotation = Quaternion.identity;
-
-            ContainerTransform.localPosition = new Vector3(0, 0, 0);
-
-            ContainerTransform.localScale = new Vector3(1, 1, 1);
+            SetParent(container, gameObject);
 
             Container = container;
         }
@@ -128,10 +102,7 @@ namespace MiniMapLibrary
 
             playerIcon.GetComponent<Image>().color = Settings.PlayerIconColor;
 
-            playerIcon.transform.SetParent(gameObject.transform);
-
-            playerIcon.transform.localPosition = new Vector3(0, 0, 0);
-            playerIcon.transform.localScale = new Vector3(1, 1, 1);
+            SetParent(playerIcon, gameObject);
         }
 
         private GameObject CreateIcon(InteractableKind type, Sprite iconTexture)
@@ -142,9 +113,9 @@ namespace MiniMapLibrary
 
                 var transform = icon.AddComponent<RectTransform>();
 
-                Dimension2D size = Settings.GetInteractableSize(type);
+                InteractibleSetting settings = Settings.GetSetting(type);
 
-                transform.sizeDelta = new Vector2(size.Width, size.Height);
+                transform.sizeDelta = new Vector2(settings.Dimensions.Width, settings.Dimensions.Height);
 
                 icon.AddComponent<CanvasRenderer>();
 
@@ -152,7 +123,7 @@ namespace MiniMapLibrary
 
                 image.sprite = iconTexture;
 
-                image.color = Settings.DefaultIconColor;
+                image.color = settings.ActiveColor;
             });
         }
 
@@ -179,6 +150,24 @@ namespace MiniMapLibrary
                 element.minHeight = Settings.MinimapSize.Height;
                 element.flexibleHeight = 0;
             });
+        }
+
+        private GameObject SetParent(GameObject child, GameObject parent)
+        {
+            SetParent(child.transform, parent.transform);
+
+            return child;
+        }
+
+        private void SetParent(Transform child, Transform parent)
+        {
+            child.transform.SetParent(parent);
+
+            child.transform.localRotation = Quaternion.identity;
+
+            child.transform.localPosition = new Vector3(0, 0, 0);
+
+            child.transform.localScale = new Vector3(1, 1, 1);
         }
 
         private GameObject Create(Action<GameObject> Expression)

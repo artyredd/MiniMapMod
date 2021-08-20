@@ -7,6 +7,8 @@ using MiniMapLibrary;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using UnityEngine.UI;
+using UnityEngine.Networking;
 
 namespace MiniMapMod
 {
@@ -15,9 +17,9 @@ namespace MiniMapMod
     {
         private readonly SpriteManager SpriteManager = new();
 
-        private readonly List<TrackedObject> TrackedObjects = new();
+        private readonly List<ITrackedObject> TrackedObjects = new();
 
-        private Minimap Minimap = new();
+        private readonly Minimap Minimap = new();
 
         private float GlobalMinX;
         private float GlobalMaxX;
@@ -31,19 +33,15 @@ namespace MiniMapMod
 
         private bool Enable = false;
 
+        private bool ScannedStaticObjects = false;
+
         public void Awake()
         {
             Log.Init(Logger);
 
-            GlobalEventManager.onCharacterDeathGlobal += OnCharacterDeath;
-            GlobalEventManager.OnInteractionsGlobal += (x, y, z) => Reset();
+            GlobalEventManager.onCharacterDeathGlobal += (x) => ScanScene();
+            GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
         }
-
-        private void OnCharacterDeath(object o)
-        {
-            Reset();
-        }
-
 
         //The Update() method is run on every frame of the game.
         private void Update()
@@ -55,68 +53,111 @@ namespace MiniMapMod
                 if (Enable == false)
                 {
                     Reset();
+                    return;
                 }
             }
 
             if (Enable)
             {
+                // the main camera becomes null when the scene ends on death or quits
+                if (Camera.main == null)
+                {
+                    Reset();
+                    return;
+                }
+
                 if (Minimap.Created)
                 {
-                    if (Camera.main == null)
-                    {
-                        Reset();
-                        return;
-                    }
-
                     try
                     {
                         Minimap.SetRotation(Camera.main.transform.rotation);
+
+                        UpdateIconPositions();
                     }
                     catch (NullReferenceException)
                     {
                         Reset();
-                        return;
-                    }
-
-                    for (int i = 0; i < TrackedObjects.Count; i++)
-                    {
-                        var item = TrackedObjects[i];
-
-                        if (item.MinimapTransform == null)
-                        {
-                            item.MinimapTransform = Minimap.CreateIcon(item.InteractableType, WorldToMinimap(item.gameObject.transform.position) - WorldToMinimap(Camera.main.transform.position), this.SpriteManager);
-                        }
-                        else
-                        {
-                            item.MinimapTransform.localPosition = WorldToMinimap(item.gameObject.transform.position) - WorldToMinimap(Camera.main.transform.position);
-                        }
-                    }
-
-                    return;
-                }
-
-                Log.LogInfo("Creating Minimap");
-
-                GameObject objectivePanel = GameObject.Find("ObjectivePanel");
-
-                if (objectivePanel != null && this.SpriteManager != null)
-                {
-                    Transform parentTransform = objectivePanel.transform.Find("StripContainer");
-
-                    if (parentTransform != null)
-                    {
-                        Minimap.CreateMinimap(this.SpriteManager, parentTransform.gameObject);
-
-                        ScanScene();
-
-                        Log.LogInfo("Finished creating Minimap");
                     }
                 }
                 else
                 {
-                    Minimap.Destroy();
+                    if (TryCreateMinimap())
+                    {
+                        ResetGlobalDimensions();
+
+                        ScanScene();
+
+                        CalculateMinimapConstraints();
+                    }
                 }
             }
+        }
+
+        private void UpdateIconPositions()
+        {
+            for (int i = 0; i < TrackedObjects.Count; i++)
+            {
+                ITrackedObject item = TrackedObjects[i];
+
+                // if we dont have a reference to the gameobject any more, remove it and continue
+                if (item.gameObject == null)
+                {
+                    TrackedObjects.RemoveAt(i);
+
+                    // if we still have a icon for the now discarded item destroy it
+                    if (item.MinimapTransform != null)
+                    {
+                        GameObject.Destroy(item.MinimapTransform.gameObject);
+                    }
+
+                    continue;
+                }
+
+                // convert the world positions to minimap positions
+                // remember the minimap is calculated on a scale from 0d to 1d where 0d is the least most coord of any interactible and 1d is the largest coord of any interactible
+
+                Vector2 itemMinimapPosition = WorldToMinimap(item.gameObject.transform.position) - WorldToMinimap(Camera.main.transform.position);
+
+                if (item.MinimapTransform == null)
+                {
+                    item.MinimapTransform = Minimap.CreateIcon(item.InteractableType, itemMinimapPosition, this.SpriteManager);
+                }
+                else
+                {
+                    item.MinimapTransform.localPosition = itemMinimapPosition;
+                    item.MinimapTransform.rotation = Quaternion.identity;
+                }
+
+                // check to see if its active and whether to change its color
+                item.CheckActive();
+            }
+        }
+
+        private bool TryCreateMinimap()
+        {
+            GameObject objectivePanel = GameObject.Find("ObjectivePanel");
+
+            if (objectivePanel == null || this.SpriteManager == null)
+            {
+                Minimap.Destroy();
+                return false;
+            }
+
+            Transform parentTransform = objectivePanel.transform.Find("StripContainer");
+
+            if (parentTransform == null)
+            {
+                Minimap.Destroy();
+                return false;
+            }
+
+            Log.LogInfo("Creating Minimap");
+
+            Minimap.CreateMinimap(this.SpriteManager, parentTransform.gameObject);
+
+            Log.LogInfo("Finished creating Minimap");
+
+            return true;
         }
 
         private void Reset()
@@ -124,42 +165,80 @@ namespace MiniMapMod
             TrackedObjects.Clear();
             ResetGlobalDimensions();
             Minimap.Destroy();
+            ScannedStaticObjects = false;
         }
 
         private void ScanScene()
         {
-            Minimap.DestroyIcons();
+            ClearDynamicTrackedObjects();
 
-            ResetGlobalDimensions();
+            ScanStaticTypes();
 
-            TrackedObjects.Clear();
+            ScanDynamicTypes();
+        }
 
-            RegisterTypes(typeof(TeleporterInteraction), InteractableKind.Teleporter);
+        private void ScanStaticTypes()
+        {
+            if (ScannedStaticObjects)
+            {
+                return;
+            }
 
-            RegisterTypes(typeof(ChestBehavior), InteractableKind.Chest);
+            RegisterTypes<ChestBehavior>(InteractableKind.Chest, dynamicObject: false);
 
-            RegisterTypes(typeof(ShrineBloodBehavior), InteractableKind.Shrine);
+            RegisterTypes<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes(typeof(ShrineChanceBehavior), InteractableKind.Shrine);
+            RegisterTypes<ShrineChanceBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes(typeof(ShrineBossBehavior), InteractableKind.Shrine);
+            RegisterTypes<ShrineBossBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes(typeof(ShrineCombatBehavior), InteractableKind.Shrine);
+            RegisterTypes<ShrineCombatBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes(typeof(ShrineHealingBehavior), InteractableKind.Shrine);
+            RegisterTypes<ShrineHealingBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes(typeof(ShrineRestackBehavior), InteractableKind.Shrine);
+            RegisterTypes<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes(typeof(ShopTerminalBehavior), InteractableKind.Chest);
+            RegisterTypes<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false);
 
-            RegisterTypes(typeof(BarrelInteraction), InteractableKind.Barrel);
+            RegisterTypes<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
 
-            RegisterTypes(typeof(ScrapperController), InteractableKind.Utility);
+            RegisterTypes<ScrapperController>(InteractableKind.Utility, dynamicObject: false);
 
-            RegisterTypes(typeof(SummonMasterBehavior), InteractableKind.Drone);
+            RegisterTypes<GenericInteraction>(InteractableKind.Special, dynamicObject: false);
 
-            RegisterTypes(typeof(GenericInteraction), InteractableKind.Special);
+            RegisterTypes<TeleporterInteraction>(InteractableKind.Teleporter, (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged, dynamicObject: false);
 
+            RegisterTypes<SummonMasterBehavior>(InteractableKind.Drone, dynamicObject: false);
+
+            ScannedStaticObjects = true;
+        }
+
+        private void ScanDynamicTypes()
+        {
+            RegisterTypes<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
+        }
+
+        private void ClearDynamicTrackedObjects()
+        {
+            if (ScannedStaticObjects is false)
+            {
+                return;
+            }
+
+            for (int i = 0; i < TrackedObjects.Count; i++)
+            {
+                var obj = TrackedObjects[i];
+
+                if (obj.DynamicObject)
+                {
+                    obj.Destroy();
+                    TrackedObjects.RemoveAt(i);
+                }
+            }
+        }
+
+        private void CalculateMinimapConstraints()
+        {
             // set the values used to calculate the scaled positions in the minimap for the items
 
             // at this point the global mins and maxes are set determine the differences
@@ -171,11 +250,11 @@ namespace MiniMapMod
             ZOffset = -GlobalMinZ;
         }
 
-        private void RegisterTypes(Type type, InteractableKind kind)
+        private void RegisterTypes<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
         {
-            IEnumerable<GameObject> found = GameObject.FindObjectsOfType(type).Select(x => ((MonoBehaviour)x).gameObject);
+            IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T)).Select(x => (T)x);
 
-            RegisterObjects(found, kind);
+            RegisterTrackedObjects(found, kind, ActiveChecker, dynamicObject);
         }
 
         /// <summary>
@@ -198,13 +277,40 @@ namespace MiniMapMod
             return new(x * Settings.MinimapSize.Width, z * Settings.MinimapSize.Height);
         }
 
-        private void RegisterObjects(IEnumerable<GameObject> objects, InteractableKind Kind = InteractableKind.none)
+        private void RegisterTrackedObjects<T>(IEnumerable<T> objects, InteractableKind Kind = InteractableKind.none, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
         {
             foreach (var item in objects)
             {
                 if (Kind != InteractableKind.none)
                 {
-                    TrackedObjects.Add(new TrackedObject(Kind, item, null));
+                    ITrackedObject newObject = null;
+
+                    if (ActiveChecker == null)
+                    {
+                        PurchaseInteraction interaction = item.gameObject.GetComponent<PurchaseInteraction>();
+
+                        if (interaction != null)
+                        {
+                            newObject = new TrackedObject<PurchaseInteraction>(Kind, item.gameObject, null)
+                            {
+                                BackingObject = interaction,
+                                ActiveChecker = (interaction) => interaction.available,
+                                DynamicObject = dynamicObject
+                            };
+                        }
+                    }
+
+                    if (newObject == null)
+                    {
+                        newObject = new TrackedObject<T>(Kind, item.gameObject, null)
+                        {
+                            BackingObject = item,
+                            ActiveChecker = ActiveChecker,
+                            DynamicObject = dynamicObject
+                        };
+                    }
+
+                    TrackedObjects.Add(newObject);
 
                     CheckPositionConstraints(item.transform.position);
                 }
@@ -239,6 +345,9 @@ namespace MiniMapMod
 
             GlobalMinZ = float.MaxValue;
             GlobalMaxZ = float.MinValue;
+
+            ZOffset = 0;
+            XOffset = 0;
         }
     }
 }

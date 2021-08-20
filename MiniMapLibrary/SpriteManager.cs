@@ -36,6 +36,7 @@ namespace MiniMapLibrary
             Add(InteractableKind.Drone, "Textures/MiscIcons/texDroneIconOutlined");
             Add(InteractableKind.Utility, "Textures/MiscIcons/texLootIconOutlined");
             Add(InteractableKind.Barrel, "Textures/MiscIcons/texBarrelIcon");
+            Add(InteractableKind.Enemy, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.Player, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.All, DefaultResourcePath);
         }

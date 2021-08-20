@@ -13,13 +13,15 @@ namespace MiniMapLibrary
 
         public static Dimension2D ViewfinderSize { get; set; } = new Dimension2D(10, 100);
 
-        public static IDictionary<InteractableKind, Dimension2D> InteractableSizes { get; } = new Dictionary<InteractableKind, Dimension2D>();
+        public static IDictionary<InteractableKind, InteractibleSetting> InteractibleSettings { get; } = new Dictionary<InteractableKind, InteractibleSetting>();
 
         private static readonly Dimension2D DefaultUIElementSize = new Dimension2D(10, 10);
 
         public static Color PlayerIconColor { get; set; } = Color.white;
 
-        public static Color DefaultIconColor { get; set; } = Color.yellow;
+        public static Color DefaultActiveColor { get; set; } = Color.yellow;
+
+        public static Color DefaultInactiveColor { get; set; } = Color.grey;
 
         static Settings()
         {
@@ -28,8 +30,11 @@ namespace MiniMapLibrary
 
         private static void InitializeDefaultSettings()
         {
-            void AddSize(InteractableKind type, float width = -1, float height = -1)
+            void AddSize(InteractableKind type, float width = -1, float height = -1, Color ActiveColor = default, Color InactiveColor = default)
             {
+                ActiveColor = ActiveColor == default ? DefaultActiveColor : ActiveColor;
+                InactiveColor = InactiveColor == default ? DefaultInactiveColor : InactiveColor;
+
                 Dimension2D size = DefaultUIElementSize;
 
                 if (width != -1 || height != -1)
@@ -37,25 +42,60 @@ namespace MiniMapLibrary
                     size = new Dimension2D(width, height);
                 }
 
-                InteractableSizes.Add(type, size);
+                var setting = new InteractibleSetting()
+                {
+                    ActiveColor = ActiveColor,
+                    InactiveColor = InactiveColor,
+                    Dimensions = size
+                };
+
+                InteractibleSettings.Add(type, setting);
             }
 
-            AddSize(InteractableKind.Chest);
+            AddSize(InteractableKind.Chest, 10, 8);
             AddSize(InteractableKind.Shrine);
-            AddSize(InteractableKind.Teleporter);
-            AddSize(InteractableKind.Player);
+            AddSize(InteractableKind.Teleporter, 15, 15, ActiveColor: Color.white, InactiveColor: Color.green);
+            AddSize(InteractableKind.Player, 8, 8, ActiveColor: PlayerIconColor, InactiveColor: PlayerIconColor);
             AddSize(InteractableKind.Barrel, 5, 5);
-            AddSize(InteractableKind.Drone);
+            AddSize(InteractableKind.Drone, 7, 7);
             AddSize(InteractableKind.Primary);
-            AddSize(InteractableKind.Special);
+            AddSize(InteractableKind.Special, 7, 7);
+            AddSize(InteractableKind.Enemy, 3, 3, ActiveColor: Color.red);
             AddSize(InteractableKind.Utility);
+        }
+
+        public static InteractibleSetting GetSetting(InteractableKind type)
+        {
+            if (InteractibleSettings.ContainsKey(type))
+            {
+                return InteractibleSettings[type];
+            }
+
+            return new InteractibleSetting()
+            {
+                Dimensions = DefaultUIElementSize,
+                ActiveColor = DefaultActiveColor,
+                InactiveColor = DefaultInactiveColor
+            };
+        }
+
+        public static Color GetColor(InteractableKind type, bool active)
+        {
+            if (InteractibleSettings.ContainsKey(type))
+            {
+                var setting = InteractibleSettings[type];
+
+                return active ? setting.ActiveColor : setting.InactiveColor;
+            }
+
+            return active ? DefaultActiveColor : DefaultInactiveColor;
         }
 
         public static Dimension2D GetInteractableSize(InteractableKind type)
         {
-            if (InteractableSizes.ContainsKey(type))
+            if (InteractibleSettings.ContainsKey(type))
             {
-                return InteractableSizes[type];
+                return InteractibleSettings[type].Dimensions ?? DefaultUIElementSize;
             }
 
             return DefaultUIElementSize;

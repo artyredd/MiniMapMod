@@ -18,6 +18,7 @@ namespace MiniMapLibrary
         Player = 1 << 6,
         Drone = 1 << 7,
         Barrel = 1 << 8,
+        Enemy = 1 << 9,
         All = 0b_1111_1
     }
 }
