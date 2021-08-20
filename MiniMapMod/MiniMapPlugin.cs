@@ -12,7 +12,7 @@ using UnityEngine.Networking;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "2.0.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "2.0.3")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly SpriteManager SpriteManager = new();
