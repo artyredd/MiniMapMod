@@ -38,6 +38,10 @@ https://www.autism.org/donate-autism-research-institute/
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Hotfix 2.04
+- enabled mini-map by default, making it so players dont need to remember to press 'M' to show it every time they start the game
+- performance minor
+
 Hotfixes 2.03
 - changed icon sizes
 - added support for colors

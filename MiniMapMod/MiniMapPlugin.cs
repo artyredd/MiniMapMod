@@ -21,17 +21,9 @@ namespace MiniMapMod
 
         private readonly Minimap Minimap = new();
 
-        private float GlobalMinX;
-        private float GlobalMaxX;
-        private float GlobalMinZ;
-        private float GlobalMaxZ;
+        private readonly Range3D TrackedDimensions = new();
 
-        private float XDifference;
-        private float XOffset;
-        private float ZDifference;
-        private float ZOffset;
-
-        private bool Enable = false;
+        private bool Enable = true;
 
         private bool ScannedStaticObjects = false;
 
@@ -83,11 +75,9 @@ namespace MiniMapMod
                 {
                     if (TryCreateMinimap())
                     {
-                        ResetGlobalDimensions();
+                        TrackedDimensions.Clear();
 
                         ScanScene();
-
-                        CalculateMinimapConstraints();
                     }
                 }
             }
@@ -163,7 +153,7 @@ namespace MiniMapMod
         private void Reset()
         {
             TrackedObjects.Clear();
-            ResetGlobalDimensions();
+            TrackedDimensions.Clear();
             Minimap.Destroy();
             ScannedStaticObjects = false;
         }
@@ -184,38 +174,38 @@ namespace MiniMapMod
                 return;
             }
 
-            RegisterTypes<ChestBehavior>(InteractableKind.Chest, dynamicObject: false);
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false);
 
-            RegisterTypes<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
+            RegisterMonobehaviorType<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes<ShrineChanceBehavior>(InteractableKind.Shrine, dynamicObject: false);
+            RegisterMonobehaviorType<ShrineChanceBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes<ShrineBossBehavior>(InteractableKind.Shrine, dynamicObject: false);
+            RegisterMonobehaviorType<ShrineBossBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes<ShrineCombatBehavior>(InteractableKind.Shrine, dynamicObject: false);
+            RegisterMonobehaviorType<ShrineCombatBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes<ShrineHealingBehavior>(InteractableKind.Shrine, dynamicObject: false);
+            RegisterMonobehaviorType<ShrineHealingBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
+            RegisterMonobehaviorType<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterTypes<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false);
+            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false);
 
-            RegisterTypes<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
+            RegisterMonobehaviorType<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
 
-            RegisterTypes<ScrapperController>(InteractableKind.Utility, dynamicObject: false);
+            RegisterMonobehaviorType<ScrapperController>(InteractableKind.Utility, dynamicObject: false);
 
-            RegisterTypes<GenericInteraction>(InteractableKind.Special, dynamicObject: false);
+            RegisterMonobehaviorType<GenericInteraction>(InteractableKind.Special, dynamicObject: false);
 
-            RegisterTypes<TeleporterInteraction>(InteractableKind.Teleporter, (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged, dynamicObject: false);
+            RegisterMonobehaviorType<TeleporterInteraction>(InteractableKind.Teleporter, (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged, dynamicObject: false);
 
-            RegisterTypes<SummonMasterBehavior>(InteractableKind.Drone, dynamicObject: false);
+            RegisterMonobehaviorType<SummonMasterBehavior>(InteractableKind.Drone, dynamicObject: false);
 
             ScannedStaticObjects = true;
         }
 
         private void ScanDynamicTypes()
         {
-            RegisterTypes<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
+            RegisterMonobehaviorType<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
         }
 
         private void ClearDynamicTrackedObjects()
@@ -237,24 +227,11 @@ namespace MiniMapMod
             }
         }
 
-        private void CalculateMinimapConstraints()
-        {
-            // set the values used to calculate the scaled positions in the minimap for the items
-
-            // at this point the global mins and maxes are set determine the differences
-            XDifference = GlobalMaxX - GlobalMinX;
-            ZDifference = GlobalMaxZ - GlobalMinZ;
-
-            // since the minimap uses a scale from 0d to 1d to position elements we should get the offsets for the x and z dimensions
-            XOffset = -GlobalMinX;
-            ZOffset = -GlobalMinZ;
-        }
-
-        private void RegisterTypes<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
+        private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
         {
             IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T)).Select(x => (T)x);
 
-            RegisterTrackedObjects(found, kind, ActiveChecker, dynamicObject);
+            RegisterMonobehaviours(found, kind, ActiveChecker, dynamicObject);
         }
 
         /// <summary>
@@ -268,86 +245,52 @@ namespace MiniMapMod
 
             float z = position.z;
 
-            x += XOffset;
-            z += ZOffset;
+            x += TrackedDimensions.X.Offset;
+            z += TrackedDimensions.Z.Offset;
 
-            x /= XDifference;
-            z /= ZDifference;
+            x /= TrackedDimensions.X.Difference;
+            z /= TrackedDimensions.Z.Difference;
 
             return new(x * Settings.MinimapSize.Width, z * Settings.MinimapSize.Height);
         }
 
-        private void RegisterTrackedObjects<T>(IEnumerable<T> objects, InteractableKind Kind = InteractableKind.none, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
+        private void RegisterMonobehaviours<T>(IEnumerable<T> objects, InteractableKind Kind = InteractableKind.none, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
         {
+            if (Kind == InteractableKind.none)
+            {
+                return;
+            }
+
             foreach (var item in objects)
             {
-                if (Kind != InteractableKind.none)
+                if (ActiveChecker == null)
                 {
-                    ITrackedObject newObject = null;
+                    PurchaseInteraction interaction = item.gameObject.GetComponent<PurchaseInteraction>();
 
-                    if (ActiveChecker == null)
+                    if (interaction != null)
                     {
-                        PurchaseInteraction interaction = item.gameObject.GetComponent<PurchaseInteraction>();
+                        RegisterObject(Kind, item.gameObject, interaction, (interaction) => interaction.available, dynamicObject);
 
-                        if (interaction != null)
-                        {
-                            newObject = new TrackedObject<PurchaseInteraction>(Kind, item.gameObject, null)
-                            {
-                                BackingObject = interaction,
-                                ActiveChecker = (interaction) => interaction.available,
-                                DynamicObject = dynamicObject
-                            };
-                        }
+                        continue;
                     }
-
-                    if (newObject == null)
-                    {
-                        newObject = new TrackedObject<T>(Kind, item.gameObject, null)
-                        {
-                            BackingObject = item,
-                            ActiveChecker = ActiveChecker,
-                            DynamicObject = dynamicObject
-                        };
-                    }
-
-                    TrackedObjects.Add(newObject);
-
-                    CheckPositionConstraints(item.transform.position);
                 }
+
+                RegisterObject(Kind, item.gameObject, item, ActiveChecker, dynamicObject);
             }
         }
 
-        private void CheckPositionConstraints(Vector3 position)
+        private void RegisterObject<T>(InteractableKind type, GameObject gameObject, T BackingObject, Func<T, bool> Expression, bool Dynamic)
         {
-            if (position.x < GlobalMinX)
+            ITrackedObject newObject = new TrackedObject<T>(type, gameObject, null)
             {
-                GlobalMinX = position.x;
-            }
-            else if (position.x > GlobalMaxX)
-            {
-                GlobalMaxX = position.x;
-            }
+                BackingObject = BackingObject,
+                ActiveChecker = Expression,
+                DynamicObject = Dynamic
+            };
 
-            if (position.z < GlobalMinZ)
-            {
-                GlobalMinZ = position.z;
-            }
-            else if (position.z > GlobalMaxZ)
-            {
-                GlobalMaxZ = position.z;
-            }
-        }
+            TrackedObjects.Add(newObject);
 
-        private void ResetGlobalDimensions()
-        {
-            GlobalMinX = float.MaxValue;
-            GlobalMaxX = float.MinValue;
-
-            GlobalMinZ = float.MaxValue;
-            GlobalMaxZ = float.MinValue;
-
-            ZOffset = 0;
-            XOffset = 0;
+            TrackedDimensions.CheckValue(gameObject.transform.position);
         }
     }
 }
