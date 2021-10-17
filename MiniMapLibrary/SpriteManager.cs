@@ -8,7 +8,7 @@ using UnityEngine;
 #nullable enable
 namespace MiniMapLibrary
 {
-    public sealed class SpriteManager : IDisposable
+    public sealed class SpriteManager : IDisposable, ISpriteManager
     {
         public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
 
@@ -23,7 +23,7 @@ namespace MiniMapLibrary
 
         private static void InitializeResources()
         {
-            void Add(InteractableKind type, string ResourcePath)
+            static void Add(InteractableKind type, string ResourcePath)
             {
                 s_ResourceDictionary.Add(type, ResourcePath);
             }

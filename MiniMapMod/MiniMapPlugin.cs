@@ -15,7 +15,7 @@ namespace MiniMapMod
     [BepInPlugin("MiniMap", "Mini Map Mod", "2.0.4")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
-        private readonly SpriteManager SpriteManager = new();
+        private readonly ISpriteManager SpriteManager = new SpriteManager();
 
         private readonly List<ITrackedObject> TrackedObjects = new();
 
