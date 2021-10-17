@@ -18,7 +18,7 @@ namespace MiniMapLibrary
 
         public bool Created { get; private set; } = false;
 
-        public void CreateMinimap(SpriteManager spriteManager, GameObject Parent)
+        public void CreateMinimap(ISpriteManager spriteManager, GameObject Parent)
         {
             if (Created)
             {
@@ -67,7 +67,7 @@ namespace MiniMapLibrary
             ContainerTransform.localRotation = Quaternion.Euler(0, 0, euler.y);
         }
 
-        public RectTransform CreateIcon(InteractableKind type, Vector3 minimapPosition, SpriteManager spriteManager)
+        public RectTransform CreateIcon(InteractableKind type, Vector3 minimapPosition, ISpriteManager spriteManager)
         {
             var icon = CreateIcon(type, spriteManager.GetSprite(type));
 
@@ -96,7 +96,7 @@ namespace MiniMapLibrary
             Container = container;
         }
 
-        private void CreatePlayerIcon(SpriteManager spriteManager)
+        private void CreatePlayerIcon(ISpriteManager spriteManager)
         {
             GameObject playerIcon = CreateIcon(InteractableKind.Player, spriteManager.GetSprite(InteractableKind.Player));
 
