@@ -15,7 +15,7 @@ Adds a contemporary Minimap to the game.
 ### Dependencies
 - BepInEx
 
-### Installation
+### Manual Installation
 - Place MiniMapLibrary.dll into your BepInEx/plugins folder.
 - Place MiniMapMod.dll into your BepInEx/plugins folder.
 
@@ -38,6 +38,11 @@ https://www.autism.org/donate-autism-research-institute/
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Compatibility Patch 3.0.0  
+- Added compatability for Survivors of the Void
+- Updated to new Unity Reference packages
+- Updated to new BepInEx/RoR2 API
+
 Hotfix 2.04
 - enabled mini-map by default, making it so players dont need to remember to press 'M' to show it every time they start the game
 - performance minor
