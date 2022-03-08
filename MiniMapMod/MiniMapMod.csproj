@@ -22,8 +22,10 @@
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="BepInEx">
-			<HintPath>libs\BepInEx.dll</HintPath>
-			<Private>false</Private>
+		  <HintPath>libs\BepInEx.dll</HintPath>
+		</Reference>
+		<Reference Include="com.unity.multiplayer-hlapi.Runtime">
+		  <HintPath>libs\com.unity.multiplayer-hlapi.Runtime.dll</HintPath>
 		</Reference>
 		<Reference Include="Facepunch.Steamworks">
 			<HintPath>libs\Facepunch.Steamworks.dll</HintPath>
@@ -80,6 +82,9 @@
 		<Reference Include="Rewired_Windows_Lib">
 			<HintPath>libs\Rewired_Windows_Lib.dll</HintPath>
 			<Private>false</Private>
+		</Reference>
+		<Reference Include="RoR2">
+		  <HintPath>libs\RoR2.dll</HintPath>
 		</Reference>
 		<Reference Include="SimpleJSON">
 			<HintPath>libs\SimpleJSON.dll</HintPath>
@@ -180,6 +185,9 @@
 		<Reference Include="UnityEngine.IMGUIModule">
 			<HintPath>libs\UnityEngine.IMGUIModule.dll</HintPath>
 			<Private>false</Private>
+		</Reference>
+		<Reference Include="UnityEngine.InputLegacyModule">
+		  <HintPath>libs\UnityEngine.InputLegacyModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.InputModule">
 			<HintPath>libs\UnityEngine.InputModule.dll</HintPath>
