@@ -31,6 +31,9 @@ namespace MiniMapLibrary
 
             SetParent(gameObject, Parent);
 
+            // make sure it's the last thing within the objective box
+            gameObject.transform.SetAsFirstSibling();
+
             CreateIconContainer();
 
             CreatePlayerIcon(spriteManager);
