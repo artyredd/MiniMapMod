@@ -1,18 +1,14 @@
 using BepInEx;
-using R2API;
-using R2API.Utils;
 using RoR2;
 using UnityEngine;
 using MiniMapLibrary;
 using System.Collections.Generic;
 using System.Linq;
 using System;
-using UnityEngine.UI;
-using UnityEngine.Networking;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "2.0.4")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.0.0")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -31,6 +27,8 @@ namespace MiniMapMod
         {
             Log.Init(Logger);
 
+            Log.LogInfo("MINIMAP: Creating scene scan hooks");
+
             GlobalEventManager.onCharacterDeathGlobal += (x) => ScanScene();
             GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
         }
@@ -38,12 +36,13 @@ namespace MiniMapMod
         //The Update() method is run on every frame of the game.
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.M))
+            if (UnityEngine.Input.GetKeyDown(KeyCode.M))
             {
                 Enable = !Enable;
 
                 if (Enable == false)
                 {
+                    Log.LogInfo("MINIMAP: Resetting minimap");
                     Reset();
                     return;
                 }
@@ -129,23 +128,25 @@ namespace MiniMapMod
 
             if (objectivePanel == null || this.SpriteManager == null)
             {
+                Log.LogInfo("MINIMAP: ObjectivePanel was not found, cancelling creating minimap");
                 Minimap.Destroy();
                 return false;
             }
 
-            Transform parentTransform = objectivePanel.transform.Find("StripContainer");
+            Transform parentTransform = objectivePanel.transform;//objectivePanel.transform.Find("StripContainer");
 
             if (parentTransform == null)
             {
+                Log.LogInfo("MINIMAP: Subcontainer on ObjectivePanel wasn't found, cancelling creating minimap");
                 Minimap.Destroy();
                 return false;
             }
 
-            Log.LogInfo("Creating Minimap");
+            Log.LogInfo("MINIMAP: Creating Minimap object");
 
             Minimap.CreateMinimap(this.SpriteManager, parentTransform.gameObject);
 
-            Log.LogInfo("Finished creating Minimap");
+            Log.LogInfo("MINIMAP: Finished creating Minimap");
 
             return true;
         }
@@ -173,6 +174,8 @@ namespace MiniMapMod
             {
                 return;
             }
+
+            Log.LogInfo("MINIMAP: Scanning scene for container/object changes");
 
             RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false);
 
