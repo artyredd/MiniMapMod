@@ -8,7 +8,7 @@ using System;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.0.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.0.1")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -127,20 +127,12 @@ namespace MiniMapMod
             GameObject objectivePanel = GameObject.Find("ObjectivePanel");
 
             if (objectivePanel == null || this.SpriteManager == null)
-            {
-                Log.LogInfo("MINIMAP: ObjectivePanel was not found, cancelling creating minimap");
+            { 
                 Minimap.Destroy();
                 return false;
             }
 
-            Transform parentTransform = objectivePanel.transform;//objectivePanel.transform.Find("StripContainer");
-
-            if (parentTransform == null)
-            {
-                Log.LogInfo("MINIMAP: Subcontainer on ObjectivePanel wasn't found, cancelling creating minimap");
-                Minimap.Destroy();
-                return false;
-            }
+            Transform parentTransform = objectivePanel.transform;   
 
             Log.LogInfo("MINIMAP: Creating Minimap object");
 
@@ -174,9 +166,7 @@ namespace MiniMapMod
             {
                 return;
             }
-
-            Log.LogInfo("MINIMAP: Scanning scene for container/object changes");
-
+            
             RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false);
 
             RegisterMonobehaviorType<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
