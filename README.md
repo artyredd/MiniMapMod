@@ -38,6 +38,9 @@ https://www.autism.org/donate-autism-research-institute/
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Minor 3.0.1
+- un-spammed console
+
 Compatibility Patch 3.0.0  
 - Added compatability for Survivors of the Void
 - Updated to new Unity Reference packages
