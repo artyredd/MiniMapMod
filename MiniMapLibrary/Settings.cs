@@ -62,6 +62,7 @@ namespace MiniMapLibrary
             AddSize(InteractableKind.Special, 7, 7);
             AddSize(InteractableKind.Enemy, 3, 3, ActiveColor: Color.red);
             AddSize(InteractableKind.Utility);
+            AddSize(InteractableKind.Printer, 10, 10);
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)
@@ -99,6 +100,19 @@ namespace MiniMapLibrary
             }
 
             return DefaultUIElementSize;
+        }
+
+        public static void UpdateSetting(InteractableKind type, float width, float height, Color active, Color inactive)
+        {
+            if (InteractibleSettings.ContainsKey(type))
+            {
+                var setting = InteractibleSettings[type];
+
+                setting.ActiveColor = active;
+                setting.InactiveColor = inactive;
+                setting.Dimensions.Height = height;
+                setting.Dimensions.Width = width;
+            }
         }
     }
 }

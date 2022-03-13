@@ -6,7 +6,7 @@ Adds a contemporary Minimap to the game.
 - Implements a Mini Map In-Game.
 - Show interactable items, shrines, teleporters, enemies and more.
 - Single and Multiplayer Compatible.
-- Plays Nice with 95% of Most Downloaded Mods.
+- Every icon is configurable for color, size and can be toggled on/off.
 
 ### Showcase
 
@@ -26,7 +26,12 @@ Adds a contemporary Minimap to the game.
 - Toggle 'M' to hide and show minimap to force a refresh and/or a re-draw if something wonky is happening on the minimap.
 
 ### Config
-No config applicable at this time
+BepInEx Config. Each icon is individually configurable.
+- Enabled / Disabled
+- Active Color
+- Inactive Color
+- Icon Width
+- Icon Height
 
 ### Upcoming Changes
 None - Final Release
@@ -38,6 +43,11 @@ https://www.autism.org/donate-autism-research-institute/
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Major 3.1
+- Added config toggle to enable or disable each individual icon
+- Added config option to choose color for each individual icon
+- Added config option to choose icon height and width for each individual icon
+
 Minor 3.0.1
 - un-spammed console
 
