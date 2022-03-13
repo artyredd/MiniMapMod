@@ -5,10 +5,11 @@ using MiniMapLibrary;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using BepInEx.Configuration;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.0.1")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.0")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -23,9 +24,28 @@ namespace MiniMapMod
 
         private bool ScannedStaticObjects = false;
 
+        private readonly Dictionary<InteractableKind, ConfigEntry<bool>> ScanOptions = new();
+
         public void Awake()
         {
             Log.Init(Logger);
+
+            // bind options
+            InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().ToArray();
+
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                InteractableKind kind = kinds[i];
+                
+                ScanOptions.Add(kind, Config.Bind<bool>($"Icon.{kind}", "enabled", true, $"Whether or or {kind} should be shown on the minimap"));
+                
+                ConfigEntry<Color> activeColor = Config.Bind<Color>($"Icon.{kind}", "activeColor", Settings.GetColor(kind, true), "The color the icon should be when it has not been interacted with");
+                ConfigEntry<Color> inactiveColor = Config.Bind<Color>($"Icon.{kind}", "inactiveColor", Settings.GetColor(kind, false), "The color the icon should be when it has used/bought");
+                ConfigEntry<float> iconWidth = Config.Bind<float>($"Icon.{kind}", "width", Settings.GetInteractableSize(kind).Width, "Width of the icon");
+                ConfigEntry<float> iconHeight = Config.Bind<float>($"Icon.{kind}", "height", Settings.GetInteractableSize(kind).Height, "Width of the icon");
+
+                Settings.UpdateSetting(kind, iconWidth.Value, iconHeight.Value, activeColor.Value, inactiveColor.Value);
+            }
 
             Log.LogInfo("MINIMAP: Creating scene scan hooks");
 
@@ -181,7 +201,11 @@ namespace MiniMapMod
 
             RegisterMonobehaviorType<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
-            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false);
+            // normal shops
+            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false, selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken != "DUPLICATOR_CONTEXT");
+            
+            // duplicators
+            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Printer, dynamicObject: false, selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken == "DUPLICATOR_CONTEXT");
 
             RegisterMonobehaviorType<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
 
@@ -220,9 +244,17 @@ namespace MiniMapMod
             }
         }
 
-        private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
+        private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true, Func<T, bool> selector = null) where T : MonoBehaviour
         {
-            IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T)).Select(x => (T)x);
+            // check to see if it's enabled in the config
+            if (ScanOptions[kind].Value == false)
+            {
+                return;
+            }
+
+            selector ??= (x) => true;
+
+            IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T)).Select(x => (T)x).Where(selector);
 
             RegisterMonobehaviours(found, kind, ActiveChecker, dynamicObject);
         }

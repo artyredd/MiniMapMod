@@ -38,6 +38,7 @@ namespace MiniMapLibrary
             Add(InteractableKind.Barrel, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.Enemy, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.Player, "Textures/MiscIcons/texBarrelIcon");
+            Add(InteractableKind.Printer, "Textures/MiscIcons/texInventoryIconOutlined");
             Add(InteractableKind.All, DefaultResourcePath);
         }
 
