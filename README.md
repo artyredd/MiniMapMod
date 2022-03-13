@@ -39,10 +39,19 @@ None - Final Release
 ### If you like my Mod please consider donating to the Autism Research Institute 
 https://www.autism.org/donate-autism-research-institute/
 
+### If you REALLY like my code I am looking for work
+Contact me for my resume
+
 ### Bug Reports
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Minor 3.1.1
+- fixed adapative chests not appearing on minimap(hopefully)
+- added descriptions to the config sections
+- removed Icon.None and Icon.Primary sections from config
+- added seperate lunar pod icons and config section
+
 Major 3.1
 - Added config toggle to enable or disable each individual icon
 - Added config option to choose color for each individual icon

@@ -30,7 +30,7 @@ namespace MiniMapLibrary
 
         private static void InitializeDefaultSettings()
         {
-            void AddSize(InteractableKind type, float width = -1, float height = -1, Color ActiveColor = default, Color InactiveColor = default)
+            static void AddSize(InteractableKind type, float width = -1, float height = -1, Color ActiveColor = default, Color InactiveColor = default)
             {
                 ActiveColor = ActiveColor == default ? DefaultActiveColor : ActiveColor;
                 InactiveColor = InactiveColor == default ? DefaultInactiveColor : InactiveColor;
@@ -58,11 +58,11 @@ namespace MiniMapLibrary
             AddSize(InteractableKind.Player, 8, 8, ActiveColor: PlayerIconColor, InactiveColor: PlayerIconColor);
             AddSize(InteractableKind.Barrel, 5, 5);
             AddSize(InteractableKind.Drone, 7, 7);
-            AddSize(InteractableKind.Primary);
             AddSize(InteractableKind.Special, 7, 7);
             AddSize(InteractableKind.Enemy, 3, 3, ActiveColor: Color.red);
             AddSize(InteractableKind.Utility);
-            AddSize(InteractableKind.Printer, 10, 10);
+            AddSize(InteractableKind.Printer, 10, 8);
+            AddSize(InteractableKind.LunarPod, 7, 7);
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)
