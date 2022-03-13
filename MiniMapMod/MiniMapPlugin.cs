@@ -9,7 +9,7 @@ using BepInEx.Configuration;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.1")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -26,18 +26,32 @@ namespace MiniMapMod
 
         private readonly Dictionary<InteractableKind, ConfigEntry<bool>> ScanOptions = new();
 
+        private readonly Dictionary<InteractableKind, string> InteractibleKindDescriptions = new();
+
         public void Awake()
         {
             Log.Init(Logger);
 
+            InteractibleKindDescriptions.Add(InteractableKind.Chest, "Chests, including shops");
+            InteractibleKindDescriptions.Add(InteractableKind.Utility, "Scrappers");
+            InteractibleKindDescriptions.Add(InteractableKind.Teleporter, "Boss teleporter");
+            InteractibleKindDescriptions.Add(InteractableKind.Shrine, "All shrines (excluding Newt)");
+            InteractibleKindDescriptions.Add(InteractableKind.Special, "Special interactibles such as the landing pod");
+            InteractibleKindDescriptions.Add(InteractableKind.Player, "Players");
+            InteractibleKindDescriptions.Add(InteractableKind.Drone, "Drones");
+            InteractibleKindDescriptions.Add(InteractableKind.Barrel, "Barrels");
+            InteractibleKindDescriptions.Add(InteractableKind.Enemy, "Enemies");
+            InteractibleKindDescriptions.Add(InteractableKind.Printer, "Printers");
+            InteractibleKindDescriptions.Add(InteractableKind.LunarPod, "Lunar pods (chests)");
+
             // bind options
-            InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().ToArray();
+            InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x=>x != InteractableKind.none && x != InteractableKind.All).ToArray();
 
             for (int i = 0; i < kinds.Length; i++)
             {
                 InteractableKind kind = kinds[i];
                 
-                ScanOptions.Add(kind, Config.Bind<bool>($"Icon.{kind}", "enabled", true, $"Whether or or {kind} should be shown on the minimap"));
+                ScanOptions.Add(kind, Config.Bind<bool>($"Icon.{kind}", "enabled", true, $"Whether or {InteractibleKindDescriptions[kind]} should be shown on the minimap."));
                 
                 ConfigEntry<Color> activeColor = Config.Bind<Color>($"Icon.{kind}", "activeColor", Settings.GetColor(kind, true), "The color the icon should be when it has not been interacted with");
                 ConfigEntry<Color> inactiveColor = Config.Bind<Color>($"Icon.{kind}", "inactiveColor", Settings.GetColor(kind, false), "The color the icon should be when it has used/bought");
@@ -187,7 +201,11 @@ namespace MiniMapMod
                 return;
             }
             
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false);
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false, selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken != "LUNAR_CHEST_CONTEXT");
+
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false, selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken == "LUNAR_CHEST_CONTEXT");
+
+            RegisterMonobehaviorType<RouletteChestController>(InteractableKind.Chest, dynamicObject: false);
 
             RegisterMonobehaviorType<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
 

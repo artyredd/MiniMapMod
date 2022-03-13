@@ -28,7 +28,6 @@ namespace MiniMapLibrary
                 s_ResourceDictionary.Add(type, ResourcePath);
             }
 
-            Add(InteractableKind.Primary, DefaultResourcePath);
             Add(InteractableKind.Shrine, "Textures/MiscIcons/texShrineIconOutlined");
             Add(InteractableKind.Special, DefaultResourcePath);
             Add(InteractableKind.Teleporter, "Textures/MiscIcons/texTeleporterIconOutlined");
@@ -39,6 +38,7 @@ namespace MiniMapLibrary
             Add(InteractableKind.Enemy, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.Player, "Textures/MiscIcons/texBarrelIcon");
             Add(InteractableKind.Printer, "Textures/MiscIcons/texInventoryIconOutlined");
+            Add(InteractableKind.LunarPod, "Textures/MiscIcons/texLootIconOutlined");
             Add(InteractableKind.All, DefaultResourcePath);
         }
 

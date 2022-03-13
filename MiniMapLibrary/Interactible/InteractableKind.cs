@@ -9,17 +9,17 @@ namespace MiniMapLibrary
     public enum InteractableKind
     {
         none = 0,
-        Primary = 1 << 0,
-        Chest = 1 << 1,
-        Utility = 1 << 2,
-        Teleporter = 1 << 3,
-        Shrine = 1 << 4,
-        Special = 1 << 5,
-        Player = 1 << 6,
-        Drone = 1 << 7,
-        Barrel = 1 << 8,
-        Enemy = 1 << 9,
-        Printer = 1 << 10,
+        Chest = 1 << 0,
+        Utility = 1 << 1,
+        Teleporter = 1 << 2,
+        Shrine = 1 << 3,
+        Special = 1 << 4,
+        Player = 1 << 5,
+        Drone = 1 << 6,
+        Barrel = 1 << 7,
+        Enemy = 1 << 8,
+        Printer = 1 << 9,
+        LunarPod = 1 << 10,
         All = 0b_1111_11
     }
 }
