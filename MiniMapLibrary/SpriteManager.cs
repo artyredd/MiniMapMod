@@ -10,8 +10,6 @@ namespace MiniMapLibrary
 {
     public sealed class SpriteManager : IDisposable, ISpriteManager
     {
-        public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
-
         private readonly Dictionary<string, Sprite> SpriteCache = new Dictionary<string, Sprite>();
 
         public void Dispose()
