@@ -12,35 +12,7 @@ namespace MiniMapLibrary
     {
         public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
 
-        private static readonly Dictionary<InteractableKind, string> s_ResourceDictionary = new Dictionary<InteractableKind, string>();
-
         private readonly Dictionary<string, Sprite> SpriteCache = new Dictionary<string, Sprite>();
-
-        static SpriteManager()
-        {
-            InitializeResources();
-        }
-
-        private static void InitializeResources()
-        {
-            static void Add(InteractableKind type, string ResourcePath)
-            {
-                s_ResourceDictionary.Add(type, ResourcePath);
-            }
-
-            Add(InteractableKind.Shrine, "Textures/MiscIcons/texShrineIconOutlined");
-            Add(InteractableKind.Special, DefaultResourcePath);
-            Add(InteractableKind.Teleporter, "Textures/MiscIcons/texTeleporterIconOutlined");
-            Add(InteractableKind.Chest, "Textures/MiscIcons/texInventoryIconOutlined");
-            Add(InteractableKind.Drone, "Textures/MiscIcons/texDroneIconOutlined");
-            Add(InteractableKind.Utility, "Textures/MiscIcons/texLootIconOutlined");
-            Add(InteractableKind.Barrel, "Textures/MiscIcons/texBarrelIcon");
-            Add(InteractableKind.Enemy, "Textures/MiscIcons/texBarrelIcon");
-            Add(InteractableKind.Player, "Textures/MiscIcons/texBarrelIcon");
-            Add(InteractableKind.Printer, "Textures/MiscIcons/texInventoryIconOutlined");
-            Add(InteractableKind.LunarPod, "Textures/MiscIcons/texLootIconOutlined");
-            Add(InteractableKind.All, DefaultResourcePath);
-        }
 
         public void Dispose()
         {
@@ -54,12 +26,11 @@ namespace MiniMapLibrary
                 return null;
             }
 
-            if (s_ResourceDictionary.TryGetValue(type, out string? path))
+            string? path = Settings.GetSetting(type)?.Config?.IconPath?.Value;
+
+            if (path != null)
             {
-                if (path != null)
-                {
-                    return GetOrCache(path);
-                }
+                return GetOrCache(path);
 
                 throw new Exception($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
             }
