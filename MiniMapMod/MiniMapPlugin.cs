@@ -11,7 +11,7 @@ using MiniMapLibrary.Interfaces;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.1")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.2")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
