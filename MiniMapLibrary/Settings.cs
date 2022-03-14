@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MiniMapLibrary.Interfaces;
+using MiniMapMod.wrappers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -30,7 +32,7 @@ namespace MiniMapLibrary
 
         private static void InitializeDefaultSettings()
         {
-            static void AddSize(InteractableKind type, float width = -1, float height = -1, Color ActiveColor = default, Color InactiveColor = default)
+            static void AddSize(InteractableKind type, float width = -1, float height = -1, Color ActiveColor = default, Color InactiveColor = default, string description = "")
             {
                 ActiveColor = ActiveColor == default ? DefaultActiveColor : ActiveColor;
                 InactiveColor = InactiveColor == default ? DefaultInactiveColor : InactiveColor;
@@ -49,20 +51,22 @@ namespace MiniMapLibrary
                     Dimensions = size
                 };
 
+                setting.Description = description;
+
                 InteractibleSettings.Add(type, setting);
             }
 
-            AddSize(InteractableKind.Chest, 10, 8);
-            AddSize(InteractableKind.Shrine);
-            AddSize(InteractableKind.Teleporter, 15, 15, ActiveColor: Color.white, InactiveColor: Color.green);
-            AddSize(InteractableKind.Player, 8, 8, ActiveColor: PlayerIconColor, InactiveColor: PlayerIconColor);
-            AddSize(InteractableKind.Barrel, 5, 5);
-            AddSize(InteractableKind.Drone, 7, 7);
-            AddSize(InteractableKind.Special, 7, 7);
-            AddSize(InteractableKind.Enemy, 3, 3, ActiveColor: Color.red);
-            AddSize(InteractableKind.Utility);
-            AddSize(InteractableKind.Printer, 10, 8);
-            AddSize(InteractableKind.LunarPod, 7, 7);
+            AddSize(InteractableKind.Chest, 10, 8, description: "Chests, including shops");
+            AddSize(InteractableKind.Shrine, description: "All shrines (excluding Newt)");
+            AddSize(InteractableKind.Teleporter, 15, 15, ActiveColor: Color.white, InactiveColor: Color.green, description: "Boss teleporters");
+            AddSize(InteractableKind.Player, 8, 8, ActiveColor: PlayerIconColor, InactiveColor: PlayerIconColor, description: "");
+            AddSize(InteractableKind.Barrel, 5, 5, description: "Barrels");
+            AddSize(InteractableKind.Drone, 7, 7, description: "Drones");
+            AddSize(InteractableKind.Special, 7, 7, description: "Special interactibles such as the landing pod");
+            AddSize(InteractableKind.Enemy, 3, 3, ActiveColor: Color.red, description: "Enemies");
+            AddSize(InteractableKind.Utility, description: "Scrappers");
+            AddSize(InteractableKind.Printer, 10, 8, description: "Printers");
+            AddSize(InteractableKind.LunarPod, 7, 7, description: "Lunar pods (chests)");
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)
@@ -100,6 +104,25 @@ namespace MiniMapLibrary
             }
 
             return DefaultUIElementSize;
+        }
+
+        public static void LoadConfigEntries(InteractableKind type, IConfig config)
+        {
+            InteractibleSetting setting = InteractibleSettings[type];
+
+            IConfigEntry<bool> enabled = config.Bind<bool>($"Icon.{type}", "enabled", true, $"Whether or not {setting.Description} should be shown on the minimap");
+            IConfigEntry<Color> activeColor = config.Bind<Color>($"Icon.{type}", "activeColor", setting.ActiveColor, "The color the icon should be when it has not been interacted with");
+            IConfigEntry<Color> inactiveColor = config.Bind<Color>($"Icon.{type}", "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
+            IConfigEntry<float> width = config.Bind<float>($"Icon.{type}", "width", setting.Dimensions.Width, "Width of the icon");
+            IConfigEntry<float> height = config.Bind<float>($"Icon.{type}", "height", setting.Dimensions.Height, "Width of the icon");
+
+
+            InteractibleSettings[type].Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor);
+
+            setting.ActiveColor = activeColor.Value;
+            setting.InactiveColor = inactiveColor.Value;
+            setting.Dimensions.Height = height.Value;
+            setting.Dimensions.Width = width.Value;
         }
 
         public static void UpdateSetting(InteractableKind type, float width, float height, Color active, Color inactive)
