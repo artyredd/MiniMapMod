@@ -46,6 +46,10 @@ Contact me for my resume
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Minor 3.1.4
+- removed stealth chests from being shown on the minimap
+- removed transport fans from chest icon to Icon.Special icons
+
 Minor 3.1.3
 - added ability to change minimap icon paths ( limited to streaming assets )
 - refactored sprite cache

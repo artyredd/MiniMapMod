@@ -11,7 +11,7 @@ using MiniMapLibrary.Interfaces;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.3")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.4")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -190,11 +190,24 @@ namespace MiniMapMod
             
             // NON lunar pods
             RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false, 
-                selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken != "LUNAR_CHEST_CONTEXT");
+                selector: chest => {
+                    var token = chest.GetComponent<PurchaseInteraction>().contextToken;
+                    return token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false && token != "FAN_CONTEXT";
+                });
 
             // lunar pods
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false, 
-                selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken == "LUNAR_CHEST_CONTEXT");
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false,
+                selector: chest => {
+                    var token = chest.GetComponent<PurchaseInteraction>().contextToken;
+                    return token == "LUNAR_CHEST_CONTEXT";
+                });
+
+            // fans
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Special, dynamicObject: false,
+                selector: chest => {
+                    var token = chest.GetComponent<PurchaseInteraction>().contextToken;
+                    return token == "FAN_CONTEXT";
+                });
 
             // adapative chests
             RegisterMonobehaviorType<RouletteChestController>(InteractableKind.Chest, dynamicObject: false);
