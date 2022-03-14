@@ -231,7 +231,10 @@ namespace MiniMapMod
             
             // duplicators
             RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Printer, dynamicObject: false, 
-                selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken == "DUPLICATOR_CONTEXT");
+                selector: shop => {
+                    var token = shop.GetComponent<PurchaseInteraction>().contextToken;
+                    return token == "DUPLICATOR_CONTEXT" || token == "DUPLICATOR_MILITARY_CONTEXT" || token == "DUPLICATOR_WILD_CONTEXT";
+                });
 
             // barrels
             RegisterMonobehaviorType<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
