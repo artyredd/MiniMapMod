@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using BepInEx.Configuration;
+using MiniMapMod.Adapters;
+using MiniMapLibrary.Interfaces;
 
 namespace MiniMapMod
 {
@@ -24,41 +26,23 @@ namespace MiniMapMod
 
         private bool ScannedStaticObjects = false;
 
-        private readonly Dictionary<InteractableKind, ConfigEntry<bool>> ScanOptions = new();
-
-        private readonly Dictionary<InteractableKind, string> InteractibleKindDescriptions = new();
+        private IConfig config;
 
         public void Awake()
         {
             Log.Init(Logger);
 
-            InteractibleKindDescriptions.Add(InteractableKind.Chest, "Chests, including shops");
-            InteractibleKindDescriptions.Add(InteractableKind.Utility, "Scrappers");
-            InteractibleKindDescriptions.Add(InteractableKind.Teleporter, "Boss teleporter");
-            InteractibleKindDescriptions.Add(InteractableKind.Shrine, "All shrines (excluding Newt)");
-            InteractibleKindDescriptions.Add(InteractableKind.Special, "Special interactibles such as the landing pod");
-            InteractibleKindDescriptions.Add(InteractableKind.Player, "Players");
-            InteractibleKindDescriptions.Add(InteractableKind.Drone, "Drones");
-            InteractibleKindDescriptions.Add(InteractableKind.Barrel, "Barrels");
-            InteractibleKindDescriptions.Add(InteractableKind.Enemy, "Enemies");
-            InteractibleKindDescriptions.Add(InteractableKind.Printer, "Printers");
-            InteractibleKindDescriptions.Add(InteractableKind.LunarPod, "Lunar pods (chests)");
+            config = new ConfigAdapter(this.Config);
 
             // bind options
             InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x=>x != InteractableKind.none && x != InteractableKind.All).ToArray();
 
-            for (int i = 0; i < kinds.Length; i++)
+            foreach (var item in kinds)
             {
-                InteractableKind kind = kinds[i];
-                
-                ScanOptions.Add(kind, Config.Bind<bool>($"Icon.{kind}", "enabled", true, $"Whether or {InteractibleKindDescriptions[kind]} should be shown on the minimap."));
-                
-                ConfigEntry<Color> activeColor = Config.Bind<Color>($"Icon.{kind}", "activeColor", Settings.GetColor(kind, true), "The color the icon should be when it has not been interacted with");
-                ConfigEntry<Color> inactiveColor = Config.Bind<Color>($"Icon.{kind}", "inactiveColor", Settings.GetColor(kind, false), "The color the icon should be when it has used/bought");
-                ConfigEntry<float> iconWidth = Config.Bind<float>($"Icon.{kind}", "width", Settings.GetInteractableSize(kind).Width, "Width of the icon");
-                ConfigEntry<float> iconHeight = Config.Bind<float>($"Icon.{kind}", "height", Settings.GetInteractableSize(kind).Height, "Width of the icon");
+                Settings.LoadConfigEntries(item, config);
 
-                Settings.UpdateSetting(kind, iconWidth.Value, iconHeight.Value, activeColor.Value, inactiveColor.Value);
+                InteractibleSetting setting = Settings.GetSetting(item);
+                Log.LogInfo($"MINIMAP: Loaded {item} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
             }
 
             Log.LogInfo("MINIMAP: Creating scene scan hooks");
@@ -182,6 +166,8 @@ namespace MiniMapMod
             TrackedObjects.Clear();
             TrackedDimensions.Clear();
             Minimap.Destroy();
+
+            // mark the scene as scannable again so we scan for chests etc..
             ScannedStaticObjects = false;
         }
 
@@ -196,17 +182,24 @@ namespace MiniMapMod
 
         private void ScanStaticTypes()
         {
+            // if we have alreadys scanned don't scan again until we die or the scene changes (this method has sever performance implications)
             if (ScannedStaticObjects)
             {
                 return;
             }
             
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false, selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken != "LUNAR_CHEST_CONTEXT");
+            // NON lunar pods
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false, 
+                selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken != "LUNAR_CHEST_CONTEXT");
 
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false, selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken == "LUNAR_CHEST_CONTEXT");
+            // lunar pods
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false, 
+                selector: chest => chest.GetComponent<PurchaseInteraction>().contextToken == "LUNAR_CHEST_CONTEXT");
 
+            // adapative chests
             RegisterMonobehaviorType<RouletteChestController>(InteractableKind.Chest, dynamicObject: false);
 
+            // shrines
             RegisterMonobehaviorType<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
             RegisterMonobehaviorType<ShrineChanceBehavior>(InteractableKind.Shrine, dynamicObject: false);
@@ -220,21 +213,29 @@ namespace MiniMapMod
             RegisterMonobehaviorType<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
             // normal shops
-            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false, selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken != "DUPLICATOR_CONTEXT");
+            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false, 
+                selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken != "DUPLICATOR_CONTEXT");
             
             // duplicators
-            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Printer, dynamicObject: false, selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken == "DUPLICATOR_CONTEXT");
+            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Printer, dynamicObject: false, 
+                selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken == "DUPLICATOR_CONTEXT");
 
+            // barrels
             RegisterMonobehaviorType<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
 
+            // scrapper
             RegisterMonobehaviorType<ScrapperController>(InteractableKind.Utility, dynamicObject: false);
 
+            // random stuff like the exploding backpack door on the landing pod
             RegisterMonobehaviorType<GenericInteraction>(InteractableKind.Special, dynamicObject: false);
 
+            // boss teleporter
             RegisterMonobehaviorType<TeleporterInteraction>(InteractableKind.Teleporter, (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged, dynamicObject: false);
 
+            // drones
             RegisterMonobehaviorType<SummonMasterBehavior>(InteractableKind.Drone, dynamicObject: false);
 
+            // make sure we only do this once per scene
             ScannedStaticObjects = true;
         }
 
@@ -265,7 +266,7 @@ namespace MiniMapMod
         private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true, Func<T, bool> selector = null) where T : MonoBehaviour
         {
             // check to see if it's enabled in the config
-            if (ScanOptions[kind].Value == false)
+            if (Settings.GetSetting(kind).Config.Enabled.Value == false)
             {
                 return;
             }
