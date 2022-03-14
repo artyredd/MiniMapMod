@@ -94,7 +94,7 @@ namespace MiniMapLibrary
                 path: "Textures/MiscIcons/texDroneIconOutlined");
 
             AddSize(InteractableKind.Special, 7, 7, 
-                description: "Special interactibles such as the landing pod",
+                description: "Special interactibles such as the landing pod and fans",
                 path: DefaultResourcePath);
 
             AddSize(InteractableKind.Enemy, 3, 3, 
