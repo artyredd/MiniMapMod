@@ -25,6 +25,8 @@ namespace MiniMapLibrary
 
         public static Color DefaultInactiveColor { get; set; } = Color.grey;
 
+        public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
+
         static Settings()
         {
             InitializeDefaultSettings();
@@ -32,7 +34,13 @@ namespace MiniMapLibrary
 
         private static void InitializeDefaultSettings()
         {
-            static void AddSize(InteractableKind type, float width = -1, float height = -1, Color ActiveColor = default, Color InactiveColor = default, string description = "")
+            static void AddSize(InteractableKind type, 
+                float width = -1, 
+                float height = -1, 
+                Color ActiveColor = default, 
+                Color InactiveColor = default, 
+                string description = "",
+                string path = DefaultResourcePath)
             {
                 ActiveColor = ActiveColor == default ? DefaultActiveColor : ActiveColor;
                 InactiveColor = InactiveColor == default ? DefaultInactiveColor : InactiveColor;
@@ -52,21 +60,59 @@ namespace MiniMapLibrary
                 };
 
                 setting.Description = description;
+                setting.IconPath = path;
 
                 InteractibleSettings.Add(type, setting);
             }
 
-            AddSize(InteractableKind.Chest, 10, 8, description: "Chests, including shops");
-            AddSize(InteractableKind.Shrine, description: "All shrines (excluding Newt)");
-            AddSize(InteractableKind.Teleporter, 15, 15, ActiveColor: Color.white, InactiveColor: Color.green, description: "Boss teleporters");
-            AddSize(InteractableKind.Player, 8, 8, ActiveColor: PlayerIconColor, InactiveColor: PlayerIconColor, description: "");
-            AddSize(InteractableKind.Barrel, 5, 5, description: "Barrels");
-            AddSize(InteractableKind.Drone, 7, 7, description: "Drones");
-            AddSize(InteractableKind.Special, 7, 7, description: "Special interactibles such as the landing pod");
-            AddSize(InteractableKind.Enemy, 3, 3, ActiveColor: Color.red, description: "Enemies");
-            AddSize(InteractableKind.Utility, description: "Scrappers");
-            AddSize(InteractableKind.Printer, 10, 8, description: "Printers");
-            AddSize(InteractableKind.LunarPod, 7, 7, description: "Lunar pods (chests)");
+            AddSize(InteractableKind.Chest, 10, 8, 
+                description: "Chests, including shops", 
+                path: "Textures/MiscIcons/texInventoryIconOutlined");
+
+            AddSize(InteractableKind.Shrine, 
+                description: "All shrines (excluding Newt)", 
+                path: "Textures/MiscIcons/texShrineIconOutlined");
+           
+            AddSize(InteractableKind.Teleporter, 15, 15, 
+                ActiveColor: Color.white, 
+                InactiveColor: Color.green, 
+                description: "Boss teleporters",
+                path: "Textures/MiscIcons/texTeleporterIconOutlined");
+
+            AddSize(InteractableKind.Player, 8, 8, 
+                ActiveColor: PlayerIconColor, 
+                InactiveColor: PlayerIconColor, 
+                description: "",
+                path: "Textures/MiscIcons/texBarrelIcon");
+
+            AddSize(InteractableKind.Barrel, 5, 5, 
+                description: "Barrels", 
+                path: "Textures/MiscIcons/texBarrelIcon");
+
+            AddSize(InteractableKind.Drone, 7, 7, 
+                description: "Drones", 
+                path: "Textures/MiscIcons/texDroneIconOutlined");
+
+            AddSize(InteractableKind.Special, 7, 7, 
+                description: "Special interactibles such as the landing pod",
+                path: DefaultResourcePath);
+
+            AddSize(InteractableKind.Enemy, 3, 3, 
+                ActiveColor: Color.red, 
+                description: "Enemies",
+                path: "Textures/MiscIcons/texBarrelIcon");
+
+            AddSize(InteractableKind.Utility, 
+                description: "Scrappers", 
+                path: "Textures/MiscIcons/texLootIconOutlined");
+
+            AddSize(InteractableKind.Printer, 10, 8, 
+                description: "Printers",
+                path: "Textures/MiscIcons/texInventoryIconOutlined");
+
+            AddSize(InteractableKind.LunarPod, 7, 7, 
+                description: "Lunar pods (chests)",
+                path: "Textures/MiscIcons/texLootIconOutlined");
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)
@@ -115,14 +161,15 @@ namespace MiniMapLibrary
             IConfigEntry<Color> inactiveColor = config.Bind<Color>($"Icon.{type}", "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
             IConfigEntry<float> width = config.Bind<float>($"Icon.{type}", "width", setting.Dimensions.Width, "Width of the icon");
             IConfigEntry<float> height = config.Bind<float>($"Icon.{type}", "height", setting.Dimensions.Height, "Width of the icon");
+            IConfigEntry<string> path = config.Bind<string>($"Icon.{type}", "icon", setting.IconPath ?? DefaultResourcePath, $"The streaming assets path of the icon");
 
-
-            InteractibleSettings[type].Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor);
+            InteractibleSettings[type].Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor, path);
 
             setting.ActiveColor = activeColor.Value;
             setting.InactiveColor = inactiveColor.Value;
             setting.Dimensions.Height = height.Value;
             setting.Dimensions.Width = width.Value;
+            setting.IconPath = path.Value;
         }
 
         public static void UpdateSetting(InteractableKind type, float width, float height, Color active, Color inactive)

@@ -13,6 +13,7 @@ namespace MiniMapLibrary
         public Color ActiveColor { get; set; }
         public Color InactiveColor { get; set; }
         public string Description { get; set; }
+        public string IconPath { get; set; }
         public ISettingConfigGroup Config;
     }
 }

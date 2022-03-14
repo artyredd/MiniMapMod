@@ -13,5 +13,6 @@ namespace MiniMapMod.wrappers
         IConfigEntry<float> Width { get; }
         IConfigEntry<Color> ActiveColor { get; }
         IConfigEntry<Color> InactiveColor { get; }
+        IConfigEntry<string> IconPath { get; }
     }
 }
