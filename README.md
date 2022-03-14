@@ -46,6 +46,9 @@ Contact me for my resume
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Minor 3.1.2
+- refactor of config code (github only update)
+
 Minor 3.1.1
 - fixed adapative chests not appearing on minimap(hopefully)
 - added descriptions to the config sections
