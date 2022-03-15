@@ -214,6 +214,10 @@ namespace MiniMapMod
                 {
                     Log.LogError($"{head.Message}");
 
+                    if (head.StackTrace != null)
+                    {
+                        Log.LogError($"{head.StackTrace}");
+                    }
                     if (head.InnerException != null)
                     {
                         head = head.InnerException;
@@ -337,7 +341,7 @@ namespace MiniMapMod
 
                     var isAlly = ally?.teamIndex == TeamIndex.Player;
 
-                    var isPlayer = ally?.GetComponent<CharacterBody>().isPlayerControlled;
+                    var isPlayer = ally?.GetComponent<CharacterBody>()?.isPlayerControlled;
 
                     if(isPlayer is null)
                     {
@@ -352,8 +356,8 @@ namespace MiniMapMod
             RegisterMonobehaviorType<TeamComponent>(InteractableKind.Player, x => true, dynamicObject: true,
                 selector: player => {
 
-                    var isOwner = player?.GetComponent<NetworkStateMachine>().hasAuthority;
-                    var isPlayer = player?.GetComponent<CharacterBody>().isPlayerControlled;
+                    var isOwner = player?.GetComponent<NetworkStateMachine>()?.hasAuthority;
+                    var isPlayer = player?.GetComponent<CharacterBody>()?.isPlayerControlled;
 
                     if (isOwner is null || isPlayer is null)
                     {
