@@ -74,7 +74,7 @@ namespace MiniMapLibrary
 
         public RectTransform CreateIcon(InteractableKind type, Vector3 minimapPosition, ISpriteManager spriteManager)
         {
-            Sprite sprite = null;
+            Sprite sprite;
 
             try
             {
@@ -84,6 +84,8 @@ namespace MiniMapLibrary
             {
                 Log.LogError($"Failed to get sprite for type {type}");
                 Log.LogError(e.Message);
+
+                return null;
             }
 
             GameObject icon = CreateIcon(type, sprite);

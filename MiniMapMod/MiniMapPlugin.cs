@@ -239,7 +239,7 @@ namespace MiniMapMod
                     if (token is null)
                     {
                         Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
-                        return true;
+                        return false;
                     }
 
                     return token.Contains("CHEST") && token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false;
@@ -301,7 +301,7 @@ namespace MiniMapMod
                 });
 
             // duplicators
-            RegisterMonobehaviorType<PurchaseInteraction>(InteractableKind.Printer, dynamicObject: false, 
+            RegisterMonobehaviorType<PurchaseInteraction>(InteractableKind.Printer, dynamicObject: false,
                 selector: shop => shop?.contextToken?.Contains("DUPLICATOR") ?? false);
 
             // barrels
@@ -378,7 +378,7 @@ namespace MiniMapMod
 
             Log.LogDebug($"Selected {selected.Count()} {kind}s");
 
-            RegisterMonobehaviours(found, kind, ActiveChecker, dynamicObject);
+            RegisterMonobehaviours(selected, kind, ActiveChecker, dynamicObject);
         }
 
         /// <summary>
