@@ -11,7 +11,7 @@ using MiniMapLibrary.Interfaces;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.4")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.5")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -32,7 +32,12 @@ namespace MiniMapMod
         {
             Log.Init(Logger);
 
+            // wrap bepinex config so we can pass it to business layer
             config = new ConfigAdapter(this.Config);
+
+            Settings.LoadApplicationSettings(config);
+
+            Log.LogInfo($"Loaded log level: {Settings.LogLevel}");
 
             // bind options
             InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x=>x != InteractableKind.none && x != InteractableKind.All).ToArray();
@@ -42,11 +47,13 @@ namespace MiniMapMod
                 Settings.LoadConfigEntries(item, config);
 
                 InteractibleSetting setting = Settings.GetSetting(item);
-                Log.LogInfo($"MINIMAP: Loaded {item} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
+                Log.LogInfo($"Loaded {item} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
             }
 
-            Log.LogInfo("MINIMAP: Creating scene scan hooks");
+            Log.LogInfo("Creating scene scan hooks");
 
+            // scan scene should NEVER throw exceptions
+            // doing so prevents all other subscribing events to not fire (after the exception)
             GlobalEventManager.onCharacterDeathGlobal += (x) => ScanScene();
             GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
         }
@@ -60,7 +67,7 @@ namespace MiniMapMod
 
                 if (Enable == false)
                 {
-                    Log.LogInfo("MINIMAP: Resetting minimap");
+                    Log.LogInfo("Resetting minimap");
                     Reset();
                     return;
                 }
@@ -71,6 +78,7 @@ namespace MiniMapMod
                 // the main camera becomes null when the scene ends on death or quits
                 if (Camera.main == null)
                 {
+                    Log.LogDebug("Main camera was null, resetting minimap");
                     Reset();
                     return;
                 }
@@ -85,6 +93,7 @@ namespace MiniMapMod
                     }
                     catch (NullReferenceException)
                     {
+                        Log.LogDebug($"{nameof(NullReferenceException)} was encountered while updating positions, reseting minimap");
                         Reset();
                     }
                 }
@@ -163,8 +172,13 @@ namespace MiniMapMod
 
         private void Reset()
         {
+            Log.LogDebug($"Clearing {nameof(TrackedObjects)}");
             TrackedObjects.Clear();
+
+            Log.LogDebug($"Clearing {nameof(TrackedDimensions)}");
             TrackedDimensions.Clear();
+
+            Log.LogDebug($"Destroying {nameof(Minimap)}");
             Minimap.Destroy();
 
             // mark the scene as scannable again so we scan for chests etc..
@@ -173,11 +187,39 @@ namespace MiniMapMod
 
         private void ScanScene()
         {
-            ClearDynamicTrackedObjects();
+            // when other mods hook into the various global events
+            // and this method throws exceptions, the entire event will throw and fail to invoke their methods
+            // as a result, this method should never throw an exception and should output meaningful
+            // errors
+            try
+            {
+                Log.LogDebug("Scanning Scene");
 
-            ScanStaticTypes();
+                Log.LogDebug("Clearing dynamically tracked objects");
+                ClearDynamicTrackedObjects();
 
-            ScanDynamicTypes();
+                Log.LogDebug("Scanning static types");
+                ScanStaticTypes();
+
+                Log.LogDebug("Scanning dynamic types");
+                ScanDynamicTypes();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Fatal exception within minimap");
+
+                Exception head = e;
+
+                while ( head != null)
+                {
+                    Log.LogError($"{head.Message}");
+
+                    if (head.InnerException != null)
+                    {
+                        head = head.InnerException;
+                    }
+                }
+            }
         }
 
         private void ScanStaticTypes()
@@ -187,27 +229,42 @@ namespace MiniMapMod
             {
                 return;
             }
-            
+
             // NON lunar pods
             RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false, 
                 selector: chest => {
-                    var token = chest.GetComponent<PurchaseInteraction>().contextToken;
-                    return token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false && token != "FAN_CONTEXT";
+                    var token = chest?.GetComponent<PurchaseInteraction>()?.contextToken;
+
+                    // mods that implement ChestBehaviour, may not also PurchaseInteraction
+                    if (token is null)
+                    {
+                        Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
+                        return true;
+                    }
+
+                    return token.Contains("CHEST") && token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false;
                 });
 
             // lunar pods
             RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false,
                 selector: chest => {
-                    var token = chest.GetComponent<PurchaseInteraction>().contextToken;
+                    var token = chest?.GetComponent<PurchaseInteraction>()?.contextToken;
+
+                    // mods that implement ChestBehaviour, may not also PurchaseInteraction
+                    if (token is null)
+                    {
+                        Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
+                        
+                        // since we're explicitly looking for lunar pods here DONT return true
+                        return false;
+                    }
+
                     return token == "LUNAR_CHEST_CONTEXT";
                 });
 
             // fans
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Special, dynamicObject: false,
-                selector: chest => {
-                    var token = chest.GetComponent<PurchaseInteraction>().contextToken;
-                    return token == "FAN_CONTEXT";
-                });
+            RegisterMonobehaviorType<PurchaseInteraction>(InteractableKind.Special, dynamicObject: false,
+                selector: chest => chest?.contextToken == "FAN_CONTEXT");
 
             // adapative chests
             RegisterMonobehaviorType<RouletteChestController>(InteractableKind.Chest, dynamicObject: false);
@@ -227,14 +284,25 @@ namespace MiniMapMod
 
             // normal shops
             RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false, 
-                selector: shop => shop.GetComponent<PurchaseInteraction>().contextToken != "DUPLICATOR_CONTEXT");
-            
-            // duplicators
-            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Printer, dynamicObject: false, 
                 selector: shop => {
-                    var token = shop.GetComponent<PurchaseInteraction>().contextToken;
-                    return token == "DUPLICATOR_CONTEXT" || token == "DUPLICATOR_MILITARY_CONTEXT" || token == "DUPLICATOR_WILD_CONTEXT";
+
+                    var token = shop?.GetComponent<PurchaseInteraction>()?.contextToken;
+
+                    // mods that implement ShopTerminalBehavior, may not also PurchaseInteraction
+                    if (token is null)
+                    {
+                        Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ShopTerminalBehavior)}. GameObject.name = {shop?.gameObject?.name}");
+
+                        // since we're explicitly looking for lunar pods here DONT return true
+                        return false;
+                    }
+
+                    return token != "DUPLICATOR_CONTEXT";
                 });
+
+            // duplicators
+            RegisterMonobehaviorType<PurchaseInteraction>(InteractableKind.Printer, dynamicObject: false, 
+                selector: shop => shop?.contextToken?.Contains("DUPLICATOR") ?? false);
 
             // barrels
             RegisterMonobehaviorType<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
@@ -257,6 +325,7 @@ namespace MiniMapMod
 
         private void ScanDynamicTypes()
         {
+            Log.LogDebug($"Scanning {nameof(AimAssistTarget)} types (enemies)");
             RegisterMonobehaviorType<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
         }
 
@@ -281,15 +350,33 @@ namespace MiniMapMod
 
         private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true, Func<T, bool> selector = null) where T : MonoBehaviour
         {
-            // check to see if it's enabled in the config
-            if (Settings.GetSetting(kind).Config.Enabled.Value == false)
+
+            Log.LogDebug($"Scanning {typeof(T).Name} types for {kind}s");
+
+            bool enabled = Settings.GetSetting(kind)?.Config?.Enabled?.Value ?? false;
+
+            Log.LogDebug($"{kind} enabled: {enabled}");
+
+            if (enabled == false)
             {
                 return;
             }
 
             selector ??= (x) => true;
 
-            IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T)).Select(x => (T)x).Where(selector);
+            IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T))?.Select(x => (T)x);
+
+            if (found is null)
+            {
+                Log.LogDebug($"Failed to find any {kind}s");
+                return;
+            }
+
+            Log.LogDebug($"Found {found.Count()} {kind}s");
+
+            IEnumerable<T> selected = found.Where(selector);
+
+            Log.LogDebug($"Selected {selected.Count()} {kind}s");
 
             RegisterMonobehaviours(found, kind, ActiveChecker, dynamicObject);
         }
@@ -325,7 +412,7 @@ namespace MiniMapMod
             {
                 if (ActiveChecker == null)
                 {
-                    PurchaseInteraction interaction = item.gameObject.GetComponent<PurchaseInteraction>();
+                    PurchaseInteraction interaction = item?.gameObject?.GetComponent<PurchaseInteraction>();
 
                     if (interaction != null)
                     {

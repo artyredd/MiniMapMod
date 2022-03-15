@@ -46,6 +46,11 @@ Contact me for my resume
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Hotfix 3.1.5
+- prevented mod from throwing exceptions within global events causing other mods to not have their events fired
+- added compatibility for mods that implement ChestBehaviour but not PurchaseInteraction
+- added debug options and logging
+
 Minor 3.1.4
 - removed stealth chests from being shown on the minimap
 - removed transport fans from chest icon to Icon.Special icons

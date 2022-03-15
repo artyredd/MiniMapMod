@@ -9,6 +9,13 @@ using UnityEngine;
 
 namespace MiniMapLibrary
 {
+    public enum LogLevel { 
+        none,
+        info,
+        debug,
+        all
+    }
+
     public static class Settings
     {
         public static Dimension2D MinimapSize { get; set; } = new Dimension2D(100, 100);
@@ -27,6 +34,10 @@ namespace MiniMapLibrary
 
         public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
 
+        public static LogLevel LogLevel => _logLevel.Value;
+
+        private static IConfigEntry<LogLevel> _logLevel;
+
         static Settings()
         {
             InitializeDefaultSettings();
@@ -34,7 +45,7 @@ namespace MiniMapLibrary
 
         private static void InitializeDefaultSettings()
         {
-            static void AddSize(InteractableKind type, 
+            static void Add(InteractableKind type, 
                 float width = -1, 
                 float height = -1, 
                 Color ActiveColor = default, 
@@ -65,52 +76,52 @@ namespace MiniMapLibrary
                 InteractibleSettings.Add(type, setting);
             }
 
-            AddSize(InteractableKind.Chest, 10, 8, 
+            Add(InteractableKind.Chest, 10, 8, 
                 description: "Chests, including shops", 
                 path: "Textures/MiscIcons/texInventoryIconOutlined");
 
-            AddSize(InteractableKind.Shrine, 
+            Add(InteractableKind.Shrine, 
                 description: "All shrines (excluding Newt)", 
                 path: "Textures/MiscIcons/texShrineIconOutlined");
            
-            AddSize(InteractableKind.Teleporter, 15, 15, 
+            Add(InteractableKind.Teleporter, 15, 15, 
                 ActiveColor: Color.white, 
                 InactiveColor: Color.green, 
                 description: "Boss teleporters",
                 path: "Textures/MiscIcons/texTeleporterIconOutlined");
 
-            AddSize(InteractableKind.Player, 8, 8, 
+            Add(InteractableKind.Player, 8, 8, 
                 ActiveColor: PlayerIconColor, 
                 InactiveColor: PlayerIconColor, 
                 description: "",
                 path: "Textures/MiscIcons/texBarrelIcon");
 
-            AddSize(InteractableKind.Barrel, 5, 5, 
+            Add(InteractableKind.Barrel, 5, 5, 
                 description: "Barrels", 
                 path: "Textures/MiscIcons/texBarrelIcon");
 
-            AddSize(InteractableKind.Drone, 7, 7, 
+            Add(InteractableKind.Drone, 7, 7, 
                 description: "Drones", 
                 path: "Textures/MiscIcons/texDroneIconOutlined");
 
-            AddSize(InteractableKind.Special, 7, 7, 
+            Add(InteractableKind.Special, 7, 7, 
                 description: "Special interactibles such as the landing pod and fans",
                 path: DefaultResourcePath);
 
-            AddSize(InteractableKind.Enemy, 3, 3, 
+            Add(InteractableKind.Enemy, 3, 3, 
                 ActiveColor: Color.red, 
                 description: "Enemies",
                 path: "Textures/MiscIcons/texBarrelIcon");
 
-            AddSize(InteractableKind.Utility, 
+            Add(InteractableKind.Utility, 
                 description: "Scrappers", 
                 path: "Textures/MiscIcons/texLootIconOutlined");
 
-            AddSize(InteractableKind.Printer, 10, 8, 
+            Add(InteractableKind.Printer, 10, 8, 
                 description: "Printers",
                 path: "Textures/MiscIcons/texInventoryIconOutlined");
 
-            AddSize(InteractableKind.LunarPod, 7, 7, 
+            Add(InteractableKind.LunarPod, 7, 7, 
                 description: "Lunar pods (chests)",
                 path: "Textures/MiscIcons/texLootIconOutlined");
         }
@@ -126,7 +137,9 @@ namespace MiniMapLibrary
             {
                 Dimensions = DefaultUIElementSize,
                 ActiveColor = DefaultActiveColor,
-                InactiveColor = DefaultInactiveColor
+                InactiveColor = DefaultInactiveColor,
+                Description = "NO_DESCRIPTION",
+                IconPath = DefaultResourcePath
             };
         }
 
@@ -152,6 +165,11 @@ namespace MiniMapLibrary
             return DefaultUIElementSize;
         }
 
+        public static void LoadApplicationSettings(IConfig config) 
+        {
+            _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
+        }
+
         public static void LoadConfigEntries(InteractableKind type, IConfig config)
         {
             InteractibleSetting setting = InteractibleSettings[type];
@@ -170,19 +188,6 @@ namespace MiniMapLibrary
             setting.Dimensions.Height = height.Value;
             setting.Dimensions.Width = width.Value;
             setting.IconPath = path.Value;
-        }
-
-        public static void UpdateSetting(InteractableKind type, float width, float height, Color active, Color inactive)
-        {
-            if (InteractibleSettings.ContainsKey(type))
-            {
-                var setting = InteractibleSettings[type];
-
-                setting.ActiveColor = active;
-                setting.InactiveColor = inactive;
-                setting.Dimensions.Height = height;
-                setting.Dimensions.Width = width;
-            }
         }
     }
 }
