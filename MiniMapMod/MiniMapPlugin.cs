@@ -325,8 +325,42 @@ namespace MiniMapMod
 
         private void ScanDynamicTypes()
         {
-            Log.LogDebug($"Scanning {nameof(AimAssistTarget)} types (enemies)");
-            RegisterMonobehaviorType<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
+            Log.LogDebug($"Scanning {nameof(AimAssistTarget)} types (enemies)");//ARCA - Not sure how to change this logger to reflect new scans
+            RegisterMonobehaviorType<TeamComponent>(InteractableKind.Enemy, x => true, dynamicObject: true, 
+                selector: enemy => enemy?.teamIndex == TeamIndex.Monster || enemy?.teamIndex == TeamIndex.Lunar);
+
+            RegisterMonobehaviorType<TeamComponent>(InteractableKind.EnemyVoid, x => true, dynamicObject: true,
+                selector: enemy => enemy?.teamIndex == TeamIndex.Void);
+
+            RegisterMonobehaviorType<TeamComponent>(InteractableKind.Ally, x => true, dynamicObject: true,
+                selector: ally => {
+
+                    var isAlly = ally?.teamIndex == TeamIndex.Player;
+
+                    var isPlayer = ally?.GetComponent<CharacterBody>().isPlayerControlled;
+
+                    if(isPlayer is null)
+                    {
+                        return isAlly;
+                    }
+                    return (isAlly == true) && (isPlayer == false);
+                });
+
+            //ARCA      There might be alot of unneccessary computation here, I found that player character have Component.tag "Player", which should take less performance to get from
+            //          But I do not know how to adapt this system to be able to register with tags, maybe you can...?
+            //          Pardon my scripting practice, am not that great xd
+            RegisterMonobehaviorType<TeamComponent>(InteractableKind.Player, x => true, dynamicObject: true,
+                selector: player => {
+
+                    var isOwner = player?.GetComponent<NetworkStateMachine>().hasAuthority;
+                    var isPlayer = player?.GetComponent<CharacterBody>().isPlayerControlled;
+
+                    if (isOwner is null || isPlayer is null)
+                    {
+                        return false;
+                    }
+                    return (isOwner == false) && (isPlayer == true);
+                });
         }
 
         private void ClearDynamicTrackedObjects()

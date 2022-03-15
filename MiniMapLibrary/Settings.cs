@@ -93,7 +93,7 @@ namespace MiniMapLibrary
             Add(InteractableKind.Player, 8, 8, 
                 ActiveColor: PlayerIconColor, 
                 InactiveColor: PlayerIconColor, 
-                description: "",
+                description: "Player, including friends",
                 path: "Textures/MiscIcons/texBarrelIcon");
 
             Add(InteractableKind.Barrel, 5, 5, 
@@ -111,6 +111,16 @@ namespace MiniMapLibrary
             Add(InteractableKind.Enemy, 3, 3, 
                 ActiveColor: Color.red, 
                 description: "Enemies",
+                path: "Textures/MiscIcons/texBarrelIcon");
+
+            Add(InteractableKind.EnemyVoid, 3, 3,
+                ActiveColor: Color.magenta,
+                description: "Void touched enemies",
+                path: "Textures/MiscIcons/texBarrelIcon");
+
+            Add(InteractableKind.Ally, 3, 3,
+                ActiveColor: Color.green,
+                description: "Allies and minions",
                 path: "Textures/MiscIcons/texBarrelIcon");
 
             Add(InteractableKind.Utility, 

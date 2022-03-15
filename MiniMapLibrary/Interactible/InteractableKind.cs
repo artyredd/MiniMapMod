@@ -18,8 +18,10 @@ namespace MiniMapLibrary
         Drone = 1 << 6,
         Barrel = 1 << 7,
         Enemy = 1 << 8,
-        Printer = 1 << 9,
-        LunarPod = 1 << 10,
+        EnemyVoid = 1 << 9,
+        Ally = 1 << 10,
+        Printer = 1 << 11,
+        LunarPod = 1 << 12,
         All = 0b_1111_11
     }
 }
