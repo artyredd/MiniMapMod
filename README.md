@@ -46,6 +46,9 @@ Contact me for my resume
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
 ### Change Log
+Hotfix 3.1.6
+- fixed typo causing all objects on map being selected to be placed on minimap regardless if they were filtered out
+
 Hotfix 3.1.5
 - prevented mod from throwing exceptions within global events causing other mods to not have their events fired
 - added compatibility for mods that implement ChestBehaviour but not PurchaseInteraction
