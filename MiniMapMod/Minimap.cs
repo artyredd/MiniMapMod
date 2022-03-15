@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MiniMapMod;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -46,6 +47,7 @@ namespace MiniMapLibrary
                 return;
             }
 
+            Log.LogDebug("Destroying minimap gameobject");
             GameObject.Destroy(gameObject);
 
             gameObject = null;
@@ -72,7 +74,19 @@ namespace MiniMapLibrary
 
         public RectTransform CreateIcon(InteractableKind type, Vector3 minimapPosition, ISpriteManager spriteManager)
         {
-            var icon = CreateIcon(type, spriteManager.GetSprite(type));
+            Sprite sprite = null;
+
+            try
+            {
+                sprite = spriteManager.GetSprite(type);
+            }
+            catch (MissingComponentException e)
+            {
+                Log.LogError($"Failed to get sprite for type {type}");
+                Log.LogError(e.Message);
+            }
+
+            GameObject icon = CreateIcon(type, sprite);
 
             var transform = icon.GetComponent<RectTransform>();
 

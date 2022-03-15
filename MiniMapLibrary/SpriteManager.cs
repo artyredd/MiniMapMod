@@ -29,11 +29,9 @@ namespace MiniMapLibrary
             if (path != null)
             {
                 return GetOrCache(path);
-
-                throw new Exception($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
             }
 
-            throw new Exception($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
+            throw new MissingComponentException($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
         }
 
         private Sprite? GetOrCache(string Path)
@@ -48,6 +46,10 @@ namespace MiniMapLibrary
             if (loaded != null)
             {
                 SpriteCache.Add(Path, loaded);
+            }
+            else 
+            {
+                throw new MissingComponentException($"MissingTextureException: {Path} does not exist within the streaming assets");
             }
 
             return loaded;
