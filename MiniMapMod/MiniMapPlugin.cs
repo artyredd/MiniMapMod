@@ -12,7 +12,7 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.2.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.6")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -50,7 +50,7 @@ namespace MiniMapMod
             logger.LogInfo($"Loaded log level: {Settings.LogLevel}");
 
             // bind options
-            InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x=>x != InteractableKind.none && x != InteractableKind.All).ToArray();
+            InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x => x != InteractableKind.none && x != InteractableKind.All).ToArray();
 
             foreach (var item in kinds)
             {
@@ -66,7 +66,7 @@ namespace MiniMapMod
 
             // scan scene should NEVER throw exceptions
             // doing so prevents all other subscribing events to not fire (after the exception)
-            
+
             // this will re-scan the scene every time any npc, player dies
             GlobalEventManager.onCharacterDeathGlobal += (x) => ScanScene();
 
@@ -78,13 +78,13 @@ namespace MiniMapMod
             IScanner<ChestBehavior> chestScanner = new MonoBehaviorScanner<ChestBehavior>(logger);
 
             // responsible for finding the InteractibleKind for each chest
-            IInteractibleSorter<ChestBehavior> chestSorter = new MonoBehaviourSorter<ChestBehavior>( 
+            IInteractibleSorter<ChestBehavior> chestSorter = new MonoBehaviourSorter<ChestBehavior>(
                 new ISorter<ChestBehavior>[] {
                     new DefaultSorter<ChestBehavior>(InteractableKind.Chest, (x) => true),
                     new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, (x) => true),
                 }
             );
-            
+
             // TODO: Create interface/class resposible for converting these chests and their kind
             // into tracked objects
         }
@@ -144,7 +144,7 @@ namespace MiniMapMod
         {
             // only perform this calculation once per frame
             Vector2 cameraPositionMinimap = Camera.main.transform.position.ToMinimapPosition(TrackedDimensions);
-            
+
             for (int i = 0; i < TrackedObjects.Count; i++)
             {
                 ITrackedObject item = TrackedObjects[i];
@@ -195,7 +195,7 @@ namespace MiniMapMod
             GameObject objectivePanel = GameObject.Find("ObjectivePanel");
 
             if (objectivePanel == null || this.SpriteManager == null)
-            { 
+            {
                 Minimap.Destroy();
                 return false;
             }
@@ -261,7 +261,7 @@ namespace MiniMapMod
             }
 
             // NON lunar pods
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false, 
+            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false,
                 selector: chest => {
                     var token = chest?.GetComponent<PurchaseInteraction>()?.contextToken;
 
@@ -284,7 +284,7 @@ namespace MiniMapMod
                     if (token is null)
                     {
                         logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
-                        
+
                         // since we're explicitly looking for lunar pods here DONT return true
                         return false;
                     }
@@ -313,7 +313,7 @@ namespace MiniMapMod
             RegisterMonobehaviorType<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
 
             // normal shops
-            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false, 
+            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false,
                 selector: shop => {
 
                     var token = shop?.GetComponent<PurchaseInteraction>()?.contextToken;
