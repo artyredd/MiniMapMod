@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using BepInEx.Configuration;
-using MiniMapLibrary.Interfaces;
+using MiniMapLibrary.Config;
 
 namespace MiniMapMod.Adapters
 {

@@ -7,7 +7,8 @@ using System.Linq;
 using System;
 using BepInEx.Configuration;
 using MiniMapMod.Adapters;
-using MiniMapLibrary.Interfaces;
+using MiniMapLibrary.Config;
+using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
@@ -18,7 +19,7 @@ namespace MiniMapMod
 
         private readonly List<ITrackedObject> TrackedObjects = new();
 
-        private readonly Minimap Minimap = new();
+        private Minimap Minimap;
 
         private readonly Range3D TrackedDimensions = new();
 
@@ -28,16 +29,25 @@ namespace MiniMapMod
 
         private IConfig config;
 
+        private MiniMapLibrary.ILogger logger;
+
         public void Awake()
         {
-            Log.Init(Logger);
+            // wrap the bepinex logger with an adapter so 
+            // we can pass it to the business layer
+            logger = new Log(base.Logger);
+
+            // create the minimap controller
+            Minimap = new(logger);
+
+            // SETUP CONFIG
 
             // wrap bepinex config so we can pass it to business layer
             config = new ConfigAdapter(this.Config);
 
             Settings.LoadApplicationSettings(config);
 
-            Log.LogInfo($"Loaded log level: {Settings.LogLevel}");
+            logger.LogInfo($"Loaded log level: {Settings.LogLevel}");
 
             // bind options
             InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x=>x != InteractableKind.none && x != InteractableKind.All).ToArray();
@@ -47,15 +57,36 @@ namespace MiniMapMod
                 Settings.LoadConfigEntries(item, config);
 
                 InteractibleSetting setting = Settings.GetSetting(item);
-                Log.LogInfo($"Loaded {item} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
+                logger.LogInfo($"Loaded {item} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
             }
 
-            Log.LogInfo("Creating scene scan hooks");
+            logger.LogInfo("Creating scene scan hooks");
+
+            // hook events so the minimaps updates
 
             // scan scene should NEVER throw exceptions
             // doing so prevents all other subscribing events to not fire (after the exception)
+            
+            // this will re-scan the scene every time any npc, player dies
             GlobalEventManager.onCharacterDeathGlobal += (x) => ScanScene();
+
+            // this will re-scan when the player uses anything like a chest
+            // or the landing pod
             GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
+
+            // resposible for scanning chests
+            IScanner<ChestBehavior> chestScanner = new MonoBehaviorScanner<ChestBehavior>(logger);
+
+            // responsible for finding the InteractibleKind for each chest
+            IInteractibleSorter<ChestBehavior> chestSorter = new MonoBehaviourSorter<ChestBehavior>( 
+                new ISorter<ChestBehavior>[] {
+                    new DefaultSorter<ChestBehavior>(InteractableKind.Chest, (x) => true),
+                    new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, (x) => true),
+                }
+            );
+            
+            // TODO: Create interface/class resposible for converting these chests and their kind
+            // into tracked objects
         }
 
         //The Update() method is run on every frame of the game.
@@ -67,7 +98,7 @@ namespace MiniMapMod
 
                 if (Enable == false)
                 {
-                    Log.LogInfo("Resetting minimap");
+                    logger.LogInfo("Resetting minimap");
                     Reset();
                     return;
                 }
@@ -78,7 +109,7 @@ namespace MiniMapMod
                 // the main camera becomes null when the scene ends on death or quits
                 if (Camera.main == null)
                 {
-                    Log.LogDebug("Main camera was null, resetting minimap");
+                    logger.LogDebug("Main camera was null, resetting minimap");
                     Reset();
                     return;
                 }
@@ -93,7 +124,7 @@ namespace MiniMapMod
                     }
                     catch (NullReferenceException)
                     {
-                        Log.LogDebug($"{nameof(NullReferenceException)} was encountered while updating positions, reseting minimap");
+                        logger.LogDebug($"{nameof(NullReferenceException)} was encountered while updating positions, reseting minimap");
                         Reset();
                     }
                 }
@@ -111,6 +142,9 @@ namespace MiniMapMod
 
         private void UpdateIconPositions()
         {
+            // only perform this calculation once per frame
+            Vector2 cameraPositionMinimap = Camera.main.transform.position.ToMinimapPosition(TrackedDimensions);
+            
             for (int i = 0; i < TrackedObjects.Count; i++)
             {
                 ITrackedObject item = TrackedObjects[i];
@@ -132,15 +166,22 @@ namespace MiniMapMod
                 // convert the world positions to minimap positions
                 // remember the minimap is calculated on a scale from 0d to 1d where 0d is the least most coord of any interactible and 1d is the largest coord of any interactible
 
-                Vector2 itemMinimapPosition = WorldToMinimap(item.gameObject.transform.position) - WorldToMinimap(Camera.main.transform.position);
+                Vector2 itemMinimapPosition = item.gameObject.transform.position.ToMinimapPosition(TrackedDimensions) - cameraPositionMinimap;
 
+                // there exists no icon when .MinimapTransform is null
                 if (item.MinimapTransform == null)
                 {
+                    // create one
                     item.MinimapTransform = Minimap.CreateIcon(item.InteractableType, itemMinimapPosition, this.SpriteManager);
                 }
                 else
                 {
+                    // since it was already created update the position
                     item.MinimapTransform.localPosition = itemMinimapPosition;
+
+                    // becuase we don't want the icons to spin WITH the minimap set their rotation
+                    // every frame so they're always facing right-side up
+                    // (they inherit their position from the minimap)
                     item.MinimapTransform.rotation = Quaternion.identity;
                 }
 
@@ -159,26 +200,24 @@ namespace MiniMapMod
                 return false;
             }
 
-            Transform parentTransform = objectivePanel.transform;   
+            logger.LogInfo("MINIMAP: Creating Minimap object");
 
-            Log.LogInfo("MINIMAP: Creating Minimap object");
+            Minimap.CreateMinimap(this.SpriteManager, objectivePanel.gameObject);
 
-            Minimap.CreateMinimap(this.SpriteManager, parentTransform.gameObject);
-
-            Log.LogInfo("MINIMAP: Finished creating Minimap");
+            logger.LogInfo("MINIMAP: Finished creating Minimap");
 
             return true;
         }
 
         private void Reset()
         {
-            Log.LogDebug($"Clearing {nameof(TrackedObjects)}");
+            logger.LogDebug($"Clearing {nameof(TrackedObjects)}");
             TrackedObjects.Clear();
 
-            Log.LogDebug($"Clearing {nameof(TrackedDimensions)}");
+            logger.LogDebug($"Clearing {nameof(TrackedDimensions)}");
             TrackedDimensions.Clear();
 
-            Log.LogDebug($"Destroying {nameof(Minimap)}");
+            logger.LogDebug($"Destroying {nameof(Minimap)}");
             Minimap.Destroy();
 
             // mark the scene as scannable again so we scan for chests etc..
@@ -193,32 +232,23 @@ namespace MiniMapMod
             // errors
             try
             {
-                Log.LogDebug("Scanning Scene");
+                logger.LogDebug("Scanning Scene");
 
-                Log.LogDebug("Clearing dynamically tracked objects");
+                logger.LogDebug("Clearing dynamically tracked objects");
                 ClearDynamicTrackedObjects();
 
-                Log.LogDebug("Scanning static types");
+                logger.LogDebug("Scanning static types");
                 ScanStaticTypes();
 
-                Log.LogDebug("Scanning dynamic types");
+                logger.LogDebug("Scanning dynamic types");
                 ScanDynamicTypes();
             }
             catch (Exception e)
             {
-                Log.LogError($"Fatal exception within minimap");
+                logger.LogException(e, $"Fatal exception within minimap");
 
-                Exception head = e;
-
-                while ( head != null)
-                {
-                    Log.LogError($"{head.Message}");
-
-                    if (head.InnerException != null)
-                    {
-                        head = head.InnerException;
-                    }
-                }
+                // intentionally consume the error, again we never want to throw an exception in
+                // a global event delegate (unless we're the last event, but that is never garunteed)
             }
         }
 
@@ -238,7 +268,7 @@ namespace MiniMapMod
                     // mods that implement ChestBehaviour, may not also PurchaseInteraction
                     if (token is null)
                     {
-                        Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
+                        logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
                         return false;
                     }
 
@@ -253,7 +283,7 @@ namespace MiniMapMod
                     // mods that implement ChestBehaviour, may not also PurchaseInteraction
                     if (token is null)
                     {
-                        Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
+                        logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
                         
                         // since we're explicitly looking for lunar pods here DONT return true
                         return false;
@@ -291,7 +321,7 @@ namespace MiniMapMod
                     // mods that implement ShopTerminalBehavior, may not also PurchaseInteraction
                     if (token is null)
                     {
-                        Log.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ShopTerminalBehavior)}. GameObject.name = {shop?.gameObject?.name}");
+                        logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ShopTerminalBehavior)}. GameObject.name = {shop?.gameObject?.name}");
 
                         // since we're explicitly looking for lunar pods here DONT return true
                         return false;
@@ -325,7 +355,7 @@ namespace MiniMapMod
 
         private void ScanDynamicTypes()
         {
-            Log.LogDebug($"Scanning {nameof(AimAssistTarget)} types (enemies)");
+            logger.LogDebug($"Scanning {nameof(AimAssistTarget)} types (enemies)");
             RegisterMonobehaviorType<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
         }
 
@@ -351,11 +381,11 @@ namespace MiniMapMod
         private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true, Func<T, bool> selector = null) where T : MonoBehaviour
         {
 
-            Log.LogDebug($"Scanning {typeof(T).Name} types for {kind}s");
+            logger.LogDebug($"Scanning {typeof(T).Name} types for {kind}s");
 
             bool enabled = Settings.GetSetting(kind)?.Config?.Enabled?.Value ?? false;
 
-            Log.LogDebug($"{kind} enabled: {enabled}");
+            logger.LogDebug($"{kind} enabled: {enabled}");
 
             if (enabled == false)
             {
@@ -368,37 +398,17 @@ namespace MiniMapMod
 
             if (found is null)
             {
-                Log.LogDebug($"Failed to find any {kind}s");
+                logger.LogDebug($"Failed to find any {kind}s");
                 return;
             }
 
-            Log.LogDebug($"Found {found.Count()} {kind}s");
+            logger.LogDebug($"Found {found.Count()} {kind}s");
 
             IEnumerable<T> selected = found.Where(selector);
 
-            Log.LogDebug($"Selected {selected.Count()} {kind}s");
+            logger.LogDebug($"Selected {selected.Count()} {kind}s");
 
             RegisterMonobehaviours(selected, kind, ActiveChecker, dynamicObject);
-        }
-
-        /// <summary>
-        /// Converts world positions to UI positons scaled between 0 and 1
-        /// </summary>
-        /// <param name="position"></param>
-        /// <returns></returns>
-        private Vector2 WorldToMinimap(Vector3 position)
-        {
-            float x = position.x;
-
-            float z = position.z;
-
-            x += TrackedDimensions.X.Offset;
-            z += TrackedDimensions.Z.Offset;
-
-            x /= TrackedDimensions.X.Difference;
-            z /= TrackedDimensions.Z.Difference;
-
-            return new(x * Settings.MinimapSize.Width, z * Settings.MinimapSize.Height);
         }
 
         private void RegisterMonobehaviours<T>(IEnumerable<T> objects, InteractableKind Kind = InteractableKind.none, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour

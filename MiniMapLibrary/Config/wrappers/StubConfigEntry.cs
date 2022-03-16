@@ -1,9 +1,8 @@
-﻿using MiniMapLibrary.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace MiniMapLibrary
+namespace MiniMapLibrary.Config
 {
     public class StubConfigEntry<T> : IConfigEntry<T>
     {

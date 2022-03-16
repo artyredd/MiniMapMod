@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using MiniMapLibrary.Scanner;
 
-namespace MiniMapMod
+namespace MiniMapLibrary.Scanner
 {
     public class TrackedObject<T> : ITrackedObject
     {
@@ -49,7 +50,9 @@ namespace MiniMapMod
             }
             catch (Exception)
             {
-
+                // intentionally eat the exception while trying to destroy the gameobject
+                // if other mods or the scene destroys the UI we dont want to throw exceptions
+                // this is expected
             }
         }
 
@@ -63,6 +66,9 @@ namespace MiniMapMod
                 }
                 catch (Exception)
                 {
+                    // intentionally eat the exception while trying to destroy the gameobject
+                    // if other mods or the scene destroys the UI we dont want to throw exceptions
+                    // this is expected
                     Active = false;
                 }
 

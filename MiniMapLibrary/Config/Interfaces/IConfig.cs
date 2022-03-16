@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MiniMapLibrary.Interfaces
+namespace MiniMapLibrary.Config
 {
     public interface IConfig
     {

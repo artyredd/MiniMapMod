@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using MiniMapLibrary.Interfaces;
+using MiniMapLibrary.Config;
 using BepInEx.Configuration;
 using BepInEx;
 

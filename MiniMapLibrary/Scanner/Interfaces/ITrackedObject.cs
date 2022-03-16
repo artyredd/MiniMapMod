@@ -1,7 +1,7 @@
 ﻿using MiniMapLibrary;
 using UnityEngine;
 
-namespace MiniMapMod
+namespace MiniMapLibrary.Scanner
 {
     public interface ITrackedObject
     {
