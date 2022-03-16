@@ -1,6 +1,6 @@
 ﻿{
   "name": "MiniMapMod",
-  "version_number": "3.1.6",
+  "version_number": "3.2.0",
   "website_url": "https://github.com/DekuDesu",
   "description": "Adds a MiniMap to your game v3.1",
   "dependencies": [

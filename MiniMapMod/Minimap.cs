@@ -11,7 +11,10 @@ namespace MiniMapLibrary
 {
     public class Minimap
     {
+        // ignore naming violation, name was chosen because unity style uses the same name
+#pragma warning disable IDE1006
         public static GameObject gameObject { get; private set; }
+#pragma warning restore IDE1006
 
         public static GameObject Container { get; private set; }
 
