@@ -80,13 +80,14 @@ namespace MiniMapMod
             // responsible for finding the InteractibleKind for each chest
             IInteractibleSorter<ChestBehavior> chestSorter = new MonoBehaviourSorter<ChestBehavior>(
                 new ISorter<ChestBehavior>[] {
-                    new DefaultSorter<ChestBehavior>(InteractableKind.Chest, (x) => true),
-                    new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, (x) => true),
+                    new DefaultSorter<ChestBehavior>(InteractableKind.Chest, (x) => x.gameObject, (x) => true),
+                    new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, (x) => x.gameObject, (x) => true),
                 }
             );
 
-            // TODO: Create interface/class resposible for converting these chests and their kind
-            // into tracked objects
+            ITrackedObjectScanner sceneScanner = new TrackedObjectScanner<ChestBehavior>(false, chestScanner, chestSorter);
+
+            ssceneScanner.ScanScene();
         }
 
         //The Update() method is run on every frame of the game.
