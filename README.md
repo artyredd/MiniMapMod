@@ -22,13 +22,16 @@ Adds a contemporary Minimap to the game.
 | Mountain Shrine | ✔ | ✔ |
 | Tree Shrine | ✔ | ✔ |
 | Combat Shrine | ✔ | ✔ |
+| Enemies | ✔ | ✔ |
+| Players | ✔ | ✔ |
+| Drones (broken) | ✔ | ✔ |
+| Allies (drones) | ✔ | ✔ |
+| Void Enemies | ✔ | ✔ |
+| Fans/Special | ✔ | ✔ |
+| Dropped Items | ✔ | ✔ |
 | Newt Altar | ❌ | ❌ |
 | Timed Chests | ❌ | ❌ |
 | Stealth Chests | ❌ | ❌ |
-| Enemies | ✔ | ✔ |
-| Players | ✔ | ✔ |
-| Void Enemies | ✔ | ✔ |
-| Fans/Special | ✔ | ✔ |
 
 ### Showcase
 
