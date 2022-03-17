@@ -71,6 +71,10 @@ Contact me for my resume
 ### Bug Reports
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
+### Collaborators
+Huge thanks to these awesome people who assisted in creating awesome features for this mod
+[Arcafanetiz](https://github.com/Arcafanetiz)
+
 ### Change Log
 Major 3.2
 - Re-implemented scanning framework for performance
