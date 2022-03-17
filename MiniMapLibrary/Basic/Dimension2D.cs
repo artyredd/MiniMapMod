@@ -16,10 +16,7 @@ namespace MiniMapLibrary
             set
             {
                 _Width = value;
-                if (OnChanged != null)
-                {
-                    OnChanged(this);
-                }
+                OnChanged?.Invoke(this);
             }
         }
         public float Height
@@ -28,10 +25,7 @@ namespace MiniMapLibrary
             set
             {
                 _Height = value;
-                if (OnChanged != null)
-                {
-                    OnChanged(this);
-                }
+                OnChanged?.Invoke(this);
             }
         }
 

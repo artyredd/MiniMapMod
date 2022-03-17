@@ -1,4 +1,4 @@
-# Mini Map Mod
+﻿# Mini Map Mod
 Adds a contemporary Minimap to the game.
 
 ### Features
@@ -7,6 +7,32 @@ Adds a contemporary Minimap to the game.
 - Show interactable items, shrines, teleporters, enemies and more.
 - Single and Multiplayer Compatible.
 - Every icon is configurable for color, size and can be toggled on/off.
+
+#### Available Icons
+| Icon     |      Available     |  Configurable |
+|----------|:-------------:|------:|
+| Chests | ✔ | ✔ |
+| Equipment Barrels | ✔ | ✔ |
+| Shops | ✔ | ✔ |
+| Printers | ✔ | ✔ |
+| Barrels | ✔ | ✔ |
+| Teleporter | ✔ | ✔ |
+| Money Shrine | ✔ | ✔ |
+| Blood Shrine | ✔ | ✔ |
+| Mountain Shrine | ✔ | ✔ |
+| Tree Shrine | ✔ | ✔ |
+| Combat Shrine | ✔ | ✔ |
+| Enemies | ✔ | ✔ |
+| Void Enemies | ✔ | ✔ |
+| Lunar Enemies | ✔ | ✔ |
+| Players | ✔ | ✔ |
+| Drones (broken) | ✔ | ✔ |
+| Allies (drones) | ✔ | ✔ |
+| Fans/Special | ✔ | ✔ |
+| Dropped Items | ✔ | ✔ |
+| Newt Altar | ❌ | ❌ |
+| Timed Chests | ❌ | ❌ |
+| Stealth Chests | ❌ | ❌ |
 
 ### Showcase
 
@@ -45,7 +71,20 @@ Contact me for my resume
 ### Bug Reports
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
+### Collaborators
+Huge thanks to these awesome people who assisted in creating awesome features for this mod
+[Arcafanetiz](https://github.com/Arcafanetiz)
+
 ### Change Log
+Major 3.2
+- Re-implemented scanning framework for performance
+- Added Equipment Barrels
+- Added Shops
+- Added Void Enemies
+- Added Players (non-client)
+- Added Allies (drones that have been bought)
+- Added Dropped Items / Lunar Coins
+
 Hotfix 3.1.6
 - fixed typo causing all objects on map being selected to be placed on minimap regardless if they were filtered out
 

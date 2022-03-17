@@ -5,7 +5,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Unity3D" Version="1.7.0" />
+	  <Reference Include="UnityEngine">
+	    <HintPath>..\MiniMapMod\libs\UnityEngine.dll</HintPath>
+	  </Reference>
+		<Reference Include="UnityEngine">
+			<HintPath>..\MiniMapMod\libs\UnityEngine.CoreModule.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.UI">
+		  <HintPath>..\MiniMapMod\libs\UnityEngine.UI.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>

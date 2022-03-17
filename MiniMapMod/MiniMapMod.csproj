@@ -39,10 +39,6 @@
 			<HintPath>libs\HGUnityUtils.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="KdTreeLib">
-			<HintPath>libs\KdTreeLib.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
 		<Reference Include="MMHOOK_Assembly-CSharp">
 			<HintPath>libs\MMHOOK_Assembly-CSharp.dll</HintPath>
 			<Private>false</Private>
@@ -51,36 +47,12 @@
 			<HintPath>libs\Mono.Security.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="pb_Stl">
-			<HintPath>libs\pb_Stl.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Poly2Tri">
-			<HintPath>libs\Poly2Tri.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ProBuilderCore">
-			<HintPath>libs\ProBuilderCore.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ProBuilderMeshOps">
-			<HintPath>libs\ProBuilderMeshOps.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="R2API">
-			<HintPath>libs\R2API.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
 		<Reference Include="Rewired_Core">
 			<HintPath>libs\Rewired_Core.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="Rewired_CSharp">
 			<HintPath>libs\Rewired_CSharp.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Rewired_Windows_Lib">
-			<HintPath>libs\Rewired_Windows_Lib.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="RoR2">
@@ -134,10 +106,6 @@
 			<HintPath>libs\UnityEngine.AudioModule.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="UnityEngine.BaselibModule">
-			<HintPath>libs\UnityEngine.BaselibModule.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
 		<Reference Include="UnityEngine.ClothModule">
 			<HintPath>libs\UnityEngine.ClothModule.dll</HintPath>
 			<Private>false</Private>
@@ -160,10 +128,6 @@
 		</Reference>
 		<Reference Include="UnityEngine.DirectorModule">
 			<HintPath>libs\UnityEngine.DirectorModule.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine.FileSystemHttpModule">
-			<HintPath>libs\UnityEngine.FileSystemHttpModule.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="UnityEngine.GameCenterModule">
@@ -199,10 +163,6 @@
 		</Reference>
 		<Reference Include="UnityEngine.LocalizationModule">
 			<HintPath>libs\UnityEngine.LocalizationModule.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine.Networking">
-			<HintPath>libs\UnityEngine.Networking.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="UnityEngine.ParticleSystemModule">
@@ -249,10 +209,6 @@
 			<HintPath>libs\UnityEngine.StreamingModule.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="UnityEngine.StyleSheetsModule">
-			<HintPath>libs\UnityEngine.StyleSheetsModule.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
 		<Reference Include="UnityEngine.SubstanceModule">
 			<HintPath>libs\UnityEngine.SubstanceModule.dll</HintPath>
 			<Private>false</Private>
@@ -275,14 +231,6 @@
 		</Reference>
 		<Reference Include="UnityEngine.TilemapModule">
 			<HintPath>libs\UnityEngine.TilemapModule.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine.Timeline">
-			<HintPath>libs\UnityEngine.Timeline.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine.TimelineModule">
-			<HintPath>libs\UnityEngine.TimelineModule.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="UnityEngine.TLSModule">

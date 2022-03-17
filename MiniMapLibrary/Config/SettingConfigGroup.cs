@@ -1,11 +1,11 @@
 ﻿using MiniMapLibrary;
-using MiniMapLibrary.Interfaces;
+using MiniMapLibrary.Config;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace MiniMapMod.wrappers
+namespace MiniMapLibrary.Config
 {
     public class SettingConfigGroup : ISettingConfigGroup
     {

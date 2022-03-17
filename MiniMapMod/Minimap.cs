@@ -9,9 +9,18 @@ using UnityEngine.UI;
 
 namespace MiniMapLibrary
 {
-    public class Minimap
+    public partial class Minimap
     {
+        private readonly MiniMapLibrary.ILogger Logger;
+
+        public Minimap(ILogger logger)
+        {
+            Logger = logger;
+        }
+// ignore naming violation, name choses to match unity conventions
+#pragma warning disable IDE1006
         public static GameObject gameObject { get; private set; }
+#pragma warning restore IDE1006
 
         public static GameObject Container { get; private set; }
 
@@ -26,6 +35,7 @@ namespace MiniMapLibrary
                 return;
             }
 
+            // set created flag
             Created = true;
 
             gameObject = CreateMask();
@@ -47,7 +57,7 @@ namespace MiniMapLibrary
                 return;
             }
 
-            Log.LogDebug("Destroying minimap gameobject");
+            Logger.LogDebug("Destroying minimap gameobject");
             GameObject.Destroy(gameObject);
 
             gameObject = null;
@@ -82,8 +92,8 @@ namespace MiniMapLibrary
             }
             catch (MissingComponentException e)
             {
-                Log.LogError($"Failed to get sprite for type {type}");
-                Log.LogError(e.Message);
+                Logger.LogError($"Failed to get sprite for type {type}");
+                Logger.LogError(e.Message);
 
                 return null;
             }

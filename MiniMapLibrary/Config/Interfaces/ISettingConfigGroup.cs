@@ -1,10 +1,9 @@
-﻿using MiniMapLibrary.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace MiniMapMod.wrappers
+namespace MiniMapLibrary.Config
 {
     public interface ISettingConfigGroup
     {

@@ -1,5 +1,4 @@
-﻿using MiniMapLibrary.Interfaces;
-using MiniMapMod.wrappers;
+﻿using MiniMapLibrary.Config;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +17,17 @@ namespace MiniMapLibrary
 
     public static class Settings
     {
+        public static class Icons
+        {
+            public const string Default = "Textures/MiscIcons/texMysteryIcon";
+            public const string LootBag = "Textures/MiscIcons/texLootIconOutlined";
+            public const string Chest = "Textures/MiscIcons/texInventoryIconOutlined";
+            public const string Circle = "Textures/MiscIcons/texBarrelIcon";
+            public const string Shrine = "Textures/MiscIcons/texShrineIconOutlined";
+            public const string Boss = "Textures/MiscIcons/texTeleporterIconOutlined";
+            public const string Drone = "Textures/MiscIcons/texDroneIconOutlined";
+        }
+
         public static Dimension2D MinimapSize { get; set; } = new Dimension2D(100, 100);
 
         public static Dimension2D ViewfinderSize { get; set; } = new Dimension2D(10, 100);
@@ -32,11 +42,11 @@ namespace MiniMapLibrary
 
         public static Color DefaultInactiveColor { get; set; } = Color.grey;
 
-        public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
-
         public static LogLevel LogLevel => _logLevel.Value;
 
         private static IConfigEntry<LogLevel> _logLevel;
+
+        private static ILogger logger;
 
         static Settings()
         {
@@ -51,7 +61,7 @@ namespace MiniMapLibrary
                 Color ActiveColor = default, 
                 Color InactiveColor = default, 
                 string description = "",
-                string path = DefaultResourcePath)
+                string path = Icons.Default)
             {
                 ActiveColor = ActiveColor == default ? DefaultActiveColor : ActiveColor;
                 InactiveColor = InactiveColor == default ? DefaultInactiveColor : InactiveColor;
@@ -76,54 +86,83 @@ namespace MiniMapLibrary
                 InteractibleSettings.Add(type, setting);
             }
 
-            Add(InteractableKind.Chest, 10, 8, 
-                description: "Chests, including shops", 
-                path: "Textures/MiscIcons/texInventoryIconOutlined");
+            Add(InteractableKind.Chest, 10, 8,
+                description: "Chests, Roulette Chests",
+                path: Icons.Chest);
 
-            Add(InteractableKind.Shrine, 
-                description: "All shrines (excluding Newt)", 
-                path: "Textures/MiscIcons/texShrineIconOutlined");
-           
-            Add(InteractableKind.Teleporter, 15, 15, 
-                ActiveColor: Color.white, 
-                InactiveColor: Color.green, 
-                description: "Boss teleporters",
-                path: "Textures/MiscIcons/texTeleporterIconOutlined");
+            Add(InteractableKind.Shop, 7, 7,
+                description: "Shops",
+                path: Icons.Chest);
 
-            Add(InteractableKind.Player, 8, 8, 
-                ActiveColor: PlayerIconColor, 
-                InactiveColor: PlayerIconColor, 
-                description: "",
-                path: "Textures/MiscIcons/texBarrelIcon");
+            Add(InteractableKind.Equipment, 8, 6,
+                description: "Equipment Barrels",
+                path: Icons.Chest);
 
-            Add(InteractableKind.Barrel, 5, 5, 
-                description: "Barrels", 
-                path: "Textures/MiscIcons/texBarrelIcon");
-
-            Add(InteractableKind.Drone, 7, 7, 
-                description: "Drones", 
-                path: "Textures/MiscIcons/texDroneIconOutlined");
-
-            Add(InteractableKind.Special, 7, 7, 
-                description: "Special interactibles such as the landing pod and fans",
-                path: DefaultResourcePath);
-
-            Add(InteractableKind.Enemy, 3, 3, 
-                ActiveColor: Color.red, 
-                description: "Enemies",
-                path: "Textures/MiscIcons/texBarrelIcon");
-
-            Add(InteractableKind.Utility, 
-                description: "Scrappers", 
-                path: "Textures/MiscIcons/texLootIconOutlined");
-
-            Add(InteractableKind.Printer, 10, 8, 
+            Add(InteractableKind.Printer, 10, 8,
                 description: "Printers",
-                path: "Textures/MiscIcons/texInventoryIconOutlined");
+                path: Icons.Chest);
 
-            Add(InteractableKind.LunarPod, 7, 7, 
+            Add(InteractableKind.Utility,
+                description: "Scrappers",
+                path: Icons.LootBag);
+
+            Add(InteractableKind.LunarPod, 7, 7,
                 description: "Lunar pods (chests)",
-                path: "Textures/MiscIcons/texLootIconOutlined");
+                path: Icons.LootBag);
+
+            Add(InteractableKind.Shrine,
+                description: "All shrines (excluding Newt)",
+                path: Icons.Shrine);
+           
+            Add(InteractableKind.Teleporter, 15, 15,
+                ActiveColor: Color.white,
+                InactiveColor: Color.green,
+                description: "Boss teleporters",
+                path: Icons.Boss);
+
+            Add(InteractableKind.Barrel, 5, 5,
+                description: "Barrels",
+                path: Icons.Circle);
+
+            Add(InteractableKind.Drone, 7, 7,
+                description: "Drones",
+                path: Icons.Drone);
+
+            Add(InteractableKind.Special, 7, 7,
+                description: "Special interactibles such as the landing pod and fans",
+                path: Icons.Default);
+
+            Add(InteractableKind.EnemyMonster, 3, 3,
+                ActiveColor: Color.red,
+                description: "Enemies",
+                path: Icons.Circle);
+
+            Add(InteractableKind.EnemyLunar, 3, 3,
+                ActiveColor: Color.red,
+                description: "Lunar enemies",
+                path: Icons.Circle);
+
+            Add(InteractableKind.EnemyVoid, 3, 3,
+                ActiveColor: Color.magenta,
+                description: "Void touched enemies",
+                path: Icons.Circle);
+
+            Add(InteractableKind.Minion, 3, 3,
+                ActiveColor: Color.green,
+                description: "Minions",
+                path: Icons.Circle);
+
+            Add(InteractableKind.Player, 8, 8,
+                ActiveColor: PlayerIconColor,
+                InactiveColor: PlayerIconColor,
+                description: "Player, including friends",
+                path: Icons.Circle);
+
+            Add(InteractableKind.Item, 3, 3,
+                ActiveColor: Color.cyan,
+                InactiveColor: Color.cyan,
+                description: "Dropped items and lunar coins",
+                path: Icons.Circle);
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)
@@ -139,7 +178,7 @@ namespace MiniMapLibrary
                 ActiveColor = DefaultActiveColor,
                 InactiveColor = DefaultInactiveColor,
                 Description = "NO_DESCRIPTION",
-                IconPath = DefaultResourcePath
+                IconPath = Icons.Default
             };
         }
 
@@ -159,35 +198,49 @@ namespace MiniMapLibrary
         {
             if (InteractibleSettings.ContainsKey(type))
             {
-                return InteractibleSettings[type].Dimensions ?? DefaultUIElementSize;
+                return InteractibleSettings[type]?.Dimensions ?? DefaultUIElementSize;
             }
 
             return DefaultUIElementSize;
         }
 
-        public static void LoadApplicationSettings(IConfig config) 
+        public static void LoadApplicationSettings(ILogger logger, IConfig config) 
         {
+            Settings.logger = logger;
             _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
+            logger.LogDebug($"Loaded log level: {Settings.LogLevel}");
         }
 
         public static void LoadConfigEntries(InteractableKind type, IConfig config)
         {
-            InteractibleSetting setting = InteractibleSettings[type];
+            InteractibleSetting setting;
 
-            IConfigEntry<bool> enabled = config.Bind<bool>($"Icon.{type}", "enabled", true, $"Whether or not {setting.Description} should be shown on the minimap");
-            IConfigEntry<Color> activeColor = config.Bind<Color>($"Icon.{type}", "activeColor", setting.ActiveColor, "The color the icon should be when it has not been interacted with");
-            IConfigEntry<Color> inactiveColor = config.Bind<Color>($"Icon.{type}", "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
-            IConfigEntry<float> width = config.Bind<float>($"Icon.{type}", "width", setting.Dimensions.Width, "Width of the icon");
-            IConfigEntry<float> height = config.Bind<float>($"Icon.{type}", "height", setting.Dimensions.Height, "Width of the icon");
-            IConfigEntry<string> path = config.Bind<string>($"Icon.{type}", "icon", setting.IconPath ?? DefaultResourcePath, $"The streaming assets path of the icon");
+            if (InteractibleSettings.ContainsKey(type) is false)
+            {
+                logger.LogError($"Failed to find an interactible setting for {type}, aborting config loading for {type}s");
+                return;
+            }
 
-            InteractibleSettings[type].Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor, path);
+            setting = InteractibleSettings[type];
+
+            string sectionTitle = $"Icon.{type}";
+
+            IConfigEntry<bool> enabled = config.Bind<bool>(sectionTitle, "enabled", true, $"Whether or not {setting.Description} should be shown on the minimap");
+            IConfigEntry<Color> activeColor = config.Bind<Color>(sectionTitle, "activeColor", setting.ActiveColor, "The color the icon should be when it has not been interacted with");
+            IConfigEntry<Color> inactiveColor = config.Bind<Color>(sectionTitle, "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
+            IConfigEntry<float> width = config.Bind<float>(sectionTitle, "width", setting.Dimensions.Width, "Width of the icon");
+            IConfigEntry<float> height = config.Bind<float>(sectionTitle, "height", setting.Dimensions.Height, "Width of the icon");
+            IConfigEntry<string> path = config.Bind<string>(sectionTitle, "icon", setting.IconPath ?? Icons.Default, $"The streaming assets path of the icon");
+
+            setting.Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor, path);
 
             setting.ActiveColor = activeColor.Value;
             setting.InactiveColor = inactiveColor.Value;
             setting.Dimensions.Height = height.Value;
             setting.Dimensions.Width = width.Value;
             setting.IconPath = path.Value;
+
+            logger.LogInfo($"Loaded {type} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
         }
     }
 }

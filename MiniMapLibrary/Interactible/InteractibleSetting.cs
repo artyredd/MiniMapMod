@@ -1,5 +1,4 @@
-﻿using MiniMapLibrary.Interfaces;
-using MiniMapMod.wrappers;
+﻿using MiniMapLibrary.Config;
 using System;
 using System.Collections.Generic;
 using System.Text;
