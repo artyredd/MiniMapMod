@@ -358,6 +358,7 @@ namespace MiniMapMod
                 SimpleScanner<ShrineCombatBehavior>(InteractableKind.Shrine),
                 SimpleScanner<ShrineHealingBehavior>(InteractableKind.Shrine),
                 SimpleScanner<ShrineRestackBehavior>(InteractableKind.Shrine),
+                SimpleScanner<ShrineBossBehavior>(InteractableKind.Shrine),
                 SimpleScanner<ScrapperController>(InteractableKind.Utility),
                 SimpleScanner<TeleporterInteraction>(InteractableKind.Teleporter, activeChecker: (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged),
                 SimpleScanner<SummonMasterBehavior>(InteractableKind.Drone),
