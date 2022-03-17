@@ -5,17 +5,19 @@ using UnityEngine;
 
 namespace MiniMapLibrary.Scanner
 {
-    public class TrackedObjectScanner<T> : ITrackedObjectScanner
+    public class MultiKindScanner<T> : ITrackedObjectScanner
     {
         private readonly IScanner<T> scanner;
         private readonly IInteractibleSorter<T> sorter;
         private readonly bool dynamic;
+        private readonly Range3D range;
 
-        public TrackedObjectScanner(bool dynamic, IScanner<T> scanner, IInteractibleSorter<T> sorter)
+        public MultiKindScanner(bool dynamic, IScanner<T> scanner, IInteractibleSorter<T> sorter, Range3D range)
         {
             this.scanner = scanner;
             this.sorter = sorter;
             this.dynamic = dynamic;
+            this.range = range;
         }
 
         public void ScanScene(IList<ITrackedObject> list)
@@ -31,6 +33,8 @@ namespace MiniMapLibrary.Scanner
                         ActiveChecker = activeChecker,
                         DynamicObject = dynamic
                     });
+
+                    range.CheckValue(gameObject.transform.position);
                 }
             }
         }

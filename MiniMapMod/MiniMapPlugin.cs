@@ -12,7 +12,7 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.1.6")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.2.0")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private readonly ISpriteManager SpriteManager = new SpriteManager();
@@ -30,6 +30,9 @@ namespace MiniMapMod
         private IConfig config;
 
         private MiniMapLibrary.ILogger logger;
+
+        private ITrackedObjectScanner[] staticScanners;
+        private ITrackedObjectScanner[] dynamicScanners;
 
         public void Awake()
         {
@@ -62,6 +65,10 @@ namespace MiniMapMod
 
             logger.LogInfo("Creating scene scan hooks");
 
+            CreateStaticScanners();
+
+            CreateDynamicScanners();
+
             // hook events so the minimaps updates
 
             // scan scene should NEVER throw exceptions
@@ -73,21 +80,6 @@ namespace MiniMapMod
             // this will re-scan when the player uses anything like a chest
             // or the landing pod
             GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
-
-            // resposible for scanning chests
-            IScanner<ChestBehavior> chestScanner = new MonoBehaviorScanner<ChestBehavior>(logger);
-
-            // responsible for finding the InteractibleKind for each chest
-            IInteractibleSorter<ChestBehavior> chestSorter = new MonoBehaviourSorter<ChestBehavior>(
-                new ISorter<ChestBehavior>[] {
-                    new DefaultSorter<ChestBehavior>(InteractableKind.Chest, (x) => x.gameObject, (x) => true),
-                    new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, (x) => x.gameObject, (x) => true),
-                }
-            );
-
-            ITrackedObjectScanner sceneScanner = new TrackedObjectScanner<ChestBehavior>(false, chestScanner, chestSorter);
-
-            ssceneScanner.ScanScene();
         }
 
         //The Update() method is run on every frame of the game.
@@ -253,6 +245,130 @@ namespace MiniMapMod
             }
         }
 
+        private void CreateStaticScanners()
+        {
+            bool TryGetPurchaseToken<T>(T value, out string out_token) where T: MonoBehaviour
+            {
+                var token = value?.GetComponent<PurchaseInteraction>()?.contextToken;
+
+                // mods that implement ChestBehaviour, may not also PurchaseInteraction
+                if (token is null)
+                {
+                    logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {typeof(T).Name}. GameObject.name = {value.gameObject.name}");
+                }
+
+                out_token = token;
+
+                return token != null;
+            }
+
+            // given any chest object this will retur true if it should be displayed as a chest
+            bool ChestSelector(ChestBehavior chest)
+            {
+                if (TryGetPurchaseToken(chest, out string token))
+                {
+                    return token.Contains("CHEST") && token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false;
+                }
+
+                return false;
+            }
+
+            bool LunarPodSelector(ChestBehavior chest)
+            {
+                if (TryGetPurchaseToken(chest, out string token))
+                {
+                    return token == "LUNAR_CHEST_CONTEXT";
+                }
+
+                return false;
+            }
+
+            bool FanSelector(PurchaseInteraction interaction) => interaction?.contextToken == "FAN_CONTEXT";
+
+            bool PrinterSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("DUPLICATOR") ?? false;
+
+            bool ShopSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TERMINAL") ?? false;
+
+            bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIP") ?? false;
+
+            GameObject DefaultConverter<T>(T value) where T: MonoBehaviour => value?.gameObject;
+
+            bool DefaultActiveChecker<T>(T value) where T: MonoBehaviour
+            {
+                if (value is PurchaseInteraction isInteraction)
+                {
+                    return isInteraction.available;
+                }
+
+                PurchaseInteraction interaction = value?.GetComponent<PurchaseInteraction>();
+
+                if (interaction != null) 
+                {
+                    return interaction.available;
+                }
+
+                // default always active;
+                return true;
+            }
+
+            bool InteractionActiveChecker(PurchaseInteraction interaction) => interaction?.available ?? true;
+
+            ITrackedObjectScanner SimpleScanner<T>(InteractableKind kind, Func<T, bool> activeChecker = null, Func<T, bool> selector = null, Func<T, GameObject> converter = null) where T: MonoBehaviour
+            {
+                return new SingleKindScanner<T>(
+                    kind: kind,
+                    dynamic: false,
+                    scanner: new MonoBehaviorScanner<T>(logger),
+                    range: TrackedDimensions,
+                    converter: converter ?? DefaultConverter,
+                    activeChecker: activeChecker ?? DefaultActiveChecker,
+                    selector: selector
+                );
+            }
+
+            staticScanners = new ITrackedObjectScanner[] {
+                new MultiKindScanner<ChestBehavior>(false,
+                new MonoBehaviorScanner<ChestBehavior>(logger), new MonoBehaviourSorter<ChestBehavior>(
+                    new ISorter<ChestBehavior>[] {
+                        new DefaultSorter<ChestBehavior>(InteractableKind.Chest, DefaultConverter, ChestSelector, DefaultActiveChecker),
+                        new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, DefaultConverter, LunarPodSelector, DefaultActiveChecker),
+                    }
+                ), TrackedDimensions),
+                new MultiKindScanner<PurchaseInteraction>(false,
+                new MonoBehaviorScanner<PurchaseInteraction>(logger), new MonoBehaviourSorter<PurchaseInteraction>(
+                    new ISorter<PurchaseInteraction>[] {
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Printer, DefaultConverter, PrinterSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Special, DefaultConverter, FanSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Shop, DefaultConverter, ShopSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Equipment, DefaultConverter, EquipmentSelector, InteractionActiveChecker),
+                    }
+                ), TrackedDimensions),
+                SimpleScanner<RouletteChestController>(InteractableKind.Chest),
+                SimpleScanner<ShrineBloodBehavior>(InteractableKind.Shrine),
+                SimpleScanner<ShrineChanceBehavior>(InteractableKind.Shrine),
+                SimpleScanner<ShrineCombatBehavior>(InteractableKind.Shrine),
+                SimpleScanner<ShrineHealingBehavior>(InteractableKind.Shrine),
+                SimpleScanner<ShrineRestackBehavior>(InteractableKind.Shrine),
+                SimpleScanner<ScrapperController>(InteractableKind.Utility),
+                SimpleScanner<TeleporterInteraction>(InteractableKind.Teleporter, activeChecker: (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged),
+                SimpleScanner<SummonMasterBehavior>(InteractableKind.Drone),
+                SimpleScanner<GenericInteraction>(InteractableKind.Special),
+                SimpleScanner<BarrelInteraction>(InteractableKind.Barrel, activeChecker: barrel => !barrel.Networkopened),
+            };
+        }
+
+        private void CreateDynamicScanners()
+        {
+            dynamicScanners = new ITrackedObjectScanner[] {
+                new SingleKindScanner<AimAssistTarget>(InteractableKind.Enemy, true, 
+                    scanner: new MonoBehaviorScanner<AimAssistTarget>(logger), 
+                    range: TrackedDimensions, 
+                    converter: x => x.gameObject, 
+                    activeChecker: x => true
+                )
+            };
+        }
+
         private void ScanStaticTypes()
         {
             // if we have alreadys scanned don't scan again until we die or the scene changes (this method has sever performance implications)
@@ -261,103 +377,20 @@ namespace MiniMapMod
                 return;
             }
 
-            // NON lunar pods
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.Chest, dynamicObject: false,
-                selector: chest => {
-                    var token = chest?.GetComponent<PurchaseInteraction>()?.contextToken;
+            for (int i = 0; i < staticScanners.Length; i++)
+            {
+                staticScanners[i].ScanScene(TrackedObjects);
+            }
 
-                    // mods that implement ChestBehaviour, may not also PurchaseInteraction
-                    if (token is null)
-                    {
-                        logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
-                        return false;
-                    }
-
-                    return token.Contains("CHEST") && token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false;
-                });
-
-            // lunar pods
-            RegisterMonobehaviorType<ChestBehavior>(InteractableKind.LunarPod, dynamicObject: false,
-                selector: chest => {
-                    var token = chest?.GetComponent<PurchaseInteraction>()?.contextToken;
-
-                    // mods that implement ChestBehaviour, may not also PurchaseInteraction
-                    if (token is null)
-                    {
-                        logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ChestBehavior)}. GameObject.name = {chest.gameObject.name}");
-
-                        // since we're explicitly looking for lunar pods here DONT return true
-                        return false;
-                    }
-
-                    return token == "LUNAR_CHEST_CONTEXT";
-                });
-
-            // fans
-            RegisterMonobehaviorType<PurchaseInteraction>(InteractableKind.Special, dynamicObject: false,
-                selector: chest => chest?.contextToken == "FAN_CONTEXT");
-
-            // adapative chests
-            RegisterMonobehaviorType<RouletteChestController>(InteractableKind.Chest, dynamicObject: false);
-
-            // shrines
-            RegisterMonobehaviorType<ShrineBloodBehavior>(InteractableKind.Shrine, dynamicObject: false);
-
-            RegisterMonobehaviorType<ShrineChanceBehavior>(InteractableKind.Shrine, dynamicObject: false);
-
-            RegisterMonobehaviorType<ShrineBossBehavior>(InteractableKind.Shrine, dynamicObject: false);
-
-            RegisterMonobehaviorType<ShrineCombatBehavior>(InteractableKind.Shrine, dynamicObject: false);
-
-            RegisterMonobehaviorType<ShrineHealingBehavior>(InteractableKind.Shrine, dynamicObject: false);
-
-            RegisterMonobehaviorType<ShrineRestackBehavior>(InteractableKind.Shrine, dynamicObject: false);
-
-            // normal shops
-            RegisterMonobehaviorType<ShopTerminalBehavior>(InteractableKind.Chest, dynamicObject: false,
-                selector: shop => {
-
-                    var token = shop?.GetComponent<PurchaseInteraction>()?.contextToken;
-
-                    // mods that implement ShopTerminalBehavior, may not also PurchaseInteraction
-                    if (token is null)
-                    {
-                        logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {nameof(ShopTerminalBehavior)}. GameObject.name = {shop?.gameObject?.name}");
-
-                        // since we're explicitly looking for lunar pods here DONT return true
-                        return false;
-                    }
-
-                    return token != "DUPLICATOR_CONTEXT";
-                });
-
-            // duplicators
-            RegisterMonobehaviorType<PurchaseInteraction>(InteractableKind.Printer, dynamicObject: false,
-                selector: shop => shop?.contextToken?.Contains("DUPLICATOR") ?? false);
-
-            // barrels
-            RegisterMonobehaviorType<BarrelInteraction>(InteractableKind.Barrel, barrel => !barrel.Networkopened, dynamicObject: false);
-
-            // scrapper
-            RegisterMonobehaviorType<ScrapperController>(InteractableKind.Utility, dynamicObject: false);
-
-            // random stuff like the exploding backpack door on the landing pod
-            RegisterMonobehaviorType<GenericInteraction>(InteractableKind.Special, dynamicObject: false);
-
-            // boss teleporter
-            RegisterMonobehaviorType<TeleporterInteraction>(InteractableKind.Teleporter, (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged, dynamicObject: false);
-
-            // drones
-            RegisterMonobehaviorType<SummonMasterBehavior>(InteractableKind.Drone, dynamicObject: false);
-
-            // make sure we only do this once per scene
             ScannedStaticObjects = true;
         }
 
         private void ScanDynamicTypes()
         {
-            logger.LogDebug($"Scanning {nameof(AimAssistTarget)} types (enemies)");
-            RegisterMonobehaviorType<AimAssistTarget>(InteractableKind.Enemy, x => true, dynamicObject: true);
+            for (int i = 0; i < dynamicScanners.Length; i++)
+            {
+                dynamicScanners[i].ScanScene(TrackedObjects);
+            }
         }
 
         private void ClearDynamicTrackedObjects()
@@ -377,78 +410,6 @@ namespace MiniMapMod
                     TrackedObjects.RemoveAt(i);
                 }
             }
-        }
-
-        private void RegisterMonobehaviorType<T>(InteractableKind kind, Func<T, bool> ActiveChecker = null, bool dynamicObject = true, Func<T, bool> selector = null) where T : MonoBehaviour
-        {
-
-            logger.LogDebug($"Scanning {typeof(T).Name} types for {kind}s");
-
-            bool enabled = Settings.GetSetting(kind)?.Config?.Enabled?.Value ?? false;
-
-            logger.LogDebug($"{kind} enabled: {enabled}");
-
-            if (enabled == false)
-            {
-                return;
-            }
-
-            selector ??= (x) => true;
-
-            IEnumerable<T> found = GameObject.FindObjectsOfType(typeof(T))?.Select(x => (T)x);
-
-            if (found is null)
-            {
-                logger.LogDebug($"Failed to find any {kind}s");
-                return;
-            }
-
-            logger.LogDebug($"Found {found.Count()} {kind}s");
-
-            IEnumerable<T> selected = found.Where(selector);
-
-            logger.LogDebug($"Selected {selected.Count()} {kind}s");
-
-            RegisterMonobehaviours(selected, kind, ActiveChecker, dynamicObject);
-        }
-
-        private void RegisterMonobehaviours<T>(IEnumerable<T> objects, InteractableKind Kind = InteractableKind.none, Func<T, bool> ActiveChecker = null, bool dynamicObject = true) where T : MonoBehaviour
-        {
-            if (Kind == InteractableKind.none)
-            {
-                return;
-            }
-
-            foreach (var item in objects)
-            {
-                if (ActiveChecker == null)
-                {
-                    PurchaseInteraction interaction = item?.gameObject?.GetComponent<PurchaseInteraction>();
-
-                    if (interaction != null)
-                    {
-                        RegisterObject(Kind, item.gameObject, interaction, (interaction) => interaction.available, dynamicObject);
-
-                        continue;
-                    }
-                }
-
-                RegisterObject(Kind, item.gameObject, item, ActiveChecker, dynamicObject);
-            }
-        }
-
-        private void RegisterObject<T>(InteractableKind type, GameObject gameObject, T BackingObject, Func<T, bool> Expression, bool Dynamic)
-        {
-            ITrackedObject newObject = new TrackedObject<T>(type, gameObject, null)
-            {
-                BackingObject = BackingObject,
-                ActiveChecker = Expression,
-                DynamicObject = Dynamic
-            };
-
-            TrackedObjects.Add(newObject);
-
-            TrackedDimensions.CheckValue(gameObject.transform.position);
         }
     }
 }

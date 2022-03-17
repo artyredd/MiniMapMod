@@ -15,6 +15,17 @@ namespace MiniMapLibrary
         all
     }
 
+    public static class Icons 
+    {
+        public const string Default = "";
+        public const string LootBag = "Textures/MiscIcons/texLootIconOutlined";
+        public const string Chest = "Textures/MiscIcons/texInventoryIconOutlined";
+        public const string Circle = "Textures/MiscIcons/texBarrelIcon";
+        public const string Shrine = "Textures/MiscIcons/texShrineIconOutlined";
+        public const string Boss = "Textures/MiscIcons/texTeleporterIconOutlined";
+        public const string Drone = "Textures/MiscIcons/texDroneIconOutlined";
+    }
+
     public static class Settings
     {
         public static Dimension2D MinimapSize { get; set; } = new Dimension2D(100, 100);
@@ -77,52 +88,70 @@ namespace MiniMapLibrary
 
             Add(InteractableKind.Chest, 10, 8, 
                 description: "Chests, including shops", 
-                path: "Textures/MiscIcons/texInventoryIconOutlined");
+                path: Icons.Chest);
+
+            Add(InteractableKind.Equipment, 8, 6,
+                description: "Equipment barrels",
+                path: Icons.Chest);
 
             Add(InteractableKind.Shrine, 
                 description: "All shrines (excluding Newt)", 
-                path: "Textures/MiscIcons/texShrineIconOutlined");
+                path: Icons.Shrine);
            
             Add(InteractableKind.Teleporter, 15, 15, 
                 ActiveColor: Color.white, 
                 InactiveColor: Color.green, 
                 description: "Boss teleporters",
-                path: "Textures/MiscIcons/texTeleporterIconOutlined");
+                path: Icons.Boss);
 
             Add(InteractableKind.Player, 8, 8, 
                 ActiveColor: PlayerIconColor, 
                 InactiveColor: PlayerIconColor, 
-                description: "",
-                path: "Textures/MiscIcons/texBarrelIcon");
+                description: "Player, including friends",
+                path: Icons.Circle);
 
             Add(InteractableKind.Barrel, 5, 5, 
                 description: "Barrels", 
-                path: "Textures/MiscIcons/texBarrelIcon");
+                path: Icons.Circle);
 
             Add(InteractableKind.Drone, 7, 7, 
                 description: "Drones", 
-                path: "Textures/MiscIcons/texDroneIconOutlined");
+                path: Icons.Drone);
 
             Add(InteractableKind.Special, 7, 7, 
                 description: "Special interactibles such as the landing pod and fans",
-                path: DefaultResourcePath);
+                path: Icons.Default);
 
             Add(InteractableKind.Enemy, 3, 3, 
                 ActiveColor: Color.red, 
                 description: "Enemies",
-                path: "Textures/MiscIcons/texBarrelIcon");
+                path: Icons.Circle);
+
+            Add(InteractableKind.EnemyVoid, 3, 3,
+                ActiveColor: Color.magenta,
+                description: "Void touched enemies",
+                path: Icons.Circle);
+
+            Add(InteractableKind.Ally, 3, 3,
+                ActiveColor: Color.green,
+                description: "Allies and minions",
+                path: Icons.Circle);
 
             Add(InteractableKind.Utility, 
                 description: "Scrappers", 
-                path: "Textures/MiscIcons/texLootIconOutlined");
+                path: Icons.LootBag);
 
             Add(InteractableKind.Printer, 10, 8, 
                 description: "Printers",
-                path: "Textures/MiscIcons/texInventoryIconOutlined");
+                path: Icons.Chest);
 
             Add(InteractableKind.LunarPod, 7, 7, 
                 description: "Lunar pods (chests)",
-                path: "Textures/MiscIcons/texLootIconOutlined");
+                path: Icons.LootBag);
+
+            Add(InteractableKind.Shop, 7, 7,
+                description: "3 item shops",
+                path: Icons.Chest);
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)

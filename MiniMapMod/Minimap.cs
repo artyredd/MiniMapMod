@@ -17,8 +17,10 @@ namespace MiniMapLibrary
         {
             Logger = logger;
         }
-
+// ignore naming violation, name choses to match unity conventions
+#pragma warning disable IDE1006
         public static GameObject gameObject { get; private set; }
+#pragma warning restore IDE1006
 
         public static GameObject Container { get; private set; }
 
