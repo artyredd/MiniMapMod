@@ -363,7 +363,6 @@ namespace MiniMapMod
                 SimpleScanner<TeleporterInteraction>(InteractableKind.Teleporter, activeChecker: (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged),
                 SimpleScanner<SummonMasterBehavior>(InteractableKind.Drone),
                 SimpleScanner<GenericInteraction>(InteractableKind.Special),
-                SimpleScanner<GenericPickupController>(InteractableKind.Item),
                 SimpleScanner<BarrelInteraction>(InteractableKind.Barrel, activeChecker: barrel => !barrel.Networkopened),
             };
         }
@@ -418,6 +417,14 @@ namespace MiniMapMod
             dynamicScanners = new ITrackedObjectScanner[]
             {
                 CreateAliveEntityScanner(),
+                new SingleKindScanner<GenericPickupController>(
+                    kind: InteractableKind.Item,
+                    dynamic: true,
+                    scanner: new MonoBehaviorScanner<GenericPickupController>(logger),
+                    range: TrackedDimensions,
+                    converter: x => x.gameObject,
+                    activeChecker: x => true
+                )
             };
         }
 
