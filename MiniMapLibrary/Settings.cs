@@ -197,6 +197,7 @@ namespace MiniMapLibrary
         {
             Settings.logger = logger;
             _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
+            logger.LogDebug($"Loaded log level: {Settings.LogLevel}");
         }
 
         public static void LoadConfigEntries(InteractableKind type, IConfig config)
@@ -227,6 +228,8 @@ namespace MiniMapLibrary
             setting.Dimensions.Height = height.Value;
             setting.Dimensions.Width = width.Value;
             setting.IconPath = path.Value;
+
+            logger.LogInfo($"Loaded {type} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
         }
     }
 }

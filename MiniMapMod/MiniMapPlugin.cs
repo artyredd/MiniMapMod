@@ -50,27 +50,22 @@ namespace MiniMapMod
 
             Settings.LoadApplicationSettings(logger, config);
 
-            logger.LogInfo($"Loaded log level: {Settings.LogLevel}");
-
             // bind options
             InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x => x != InteractableKind.none && x != InteractableKind.All).ToArray();
 
             foreach (var item in kinds)
             {
                 Settings.LoadConfigEntries(item, config);
-
-                InteractibleSetting setting = Settings.GetSetting(item);
-                logger.LogInfo($"Loaded {item} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
             }
 
             logger.LogInfo("Creating scene scan hooks");
 
+            // fill the scanner arrays
             CreateStaticScanners();
 
             CreateDynamicScanners();
 
             // hook events so the minimaps updates
-
             // scan scene should NEVER throw exceptions
             // doing so prevents all other subscribing events to not fire (after the exception)
 
@@ -247,9 +242,9 @@ namespace MiniMapMod
             }
         }
 
-        private void CreateStaticScanners()
+        private ITrackedObjectScanner CreateChestScanner(Func<ChestBehavior, bool> activeChecker)
         {
-            bool TryGetPurchaseToken<T>(T value, out string out_token) where T: MonoBehaviour
+            bool TryGetPurchaseToken<T>(T value, out string out_token) where T : MonoBehaviour
             {
                 var token = value?.GetComponent<PurchaseInteraction>()?.contextToken;
 
@@ -285,6 +280,17 @@ namespace MiniMapMod
                 return false;
             }
 
+            return new MultiKindScanner<ChestBehavior>(false,
+                new MonoBehaviorScanner<ChestBehavior>(logger), new MonoBehaviourSorter<ChestBehavior>(
+                    new ISorter<ChestBehavior>[] {
+                        new DefaultSorter<ChestBehavior>(InteractableKind.Chest, x => x.gameObject, ChestSelector, activeChecker),
+                        new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod,  x => x.gameObject, LunarPodSelector, activeChecker),
+                    }
+                ), TrackedDimensions);
+        }
+
+        private ITrackedObjectScanner CreatePurchaseInteractionScanner()
+        {
             bool FanSelector(PurchaseInteraction interaction) => interaction?.contextToken == "FAN_CONTEXT";
 
             bool PrinterSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("DUPLICATOR") ?? false;
@@ -293,6 +299,23 @@ namespace MiniMapMod
 
             bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIP") ?? false;
 
+            bool InteractionActiveChecker(PurchaseInteraction interaction) => interaction?.available ?? true;
+
+            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
+
+            return new MultiKindScanner<PurchaseInteraction>(false,
+                new MonoBehaviorScanner<PurchaseInteraction>(logger), new MonoBehaviourSorter<PurchaseInteraction>(
+                    new ISorter<PurchaseInteraction>[] {
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Printer, DefaultConverter, PrinterSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Special, DefaultConverter, FanSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Shop, DefaultConverter, ShopSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Equipment, DefaultConverter, EquipmentSelector, InteractionActiveChecker),
+                    }
+                ), TrackedDimensions);
+        }
+
+        private void CreateStaticScanners()
+        {
             GameObject DefaultConverter<T>(T value) where T: MonoBehaviour => value?.gameObject;
 
             bool DefaultActiveChecker<T>(T value) where T: MonoBehaviour
@@ -313,8 +336,6 @@ namespace MiniMapMod
                 return true;
             }
 
-            bool InteractionActiveChecker(PurchaseInteraction interaction) => interaction?.available ?? true;
-
             ITrackedObjectScanner SimpleScanner<T>(InteractableKind kind, Func<T, bool> activeChecker = null, Func<T, bool> selector = null, Func<T, GameObject> converter = null) where T: MonoBehaviour
             {
                 return new SingleKindScanner<T>(
@@ -329,22 +350,8 @@ namespace MiniMapMod
             }
 
             staticScanners = new ITrackedObjectScanner[] {
-                new MultiKindScanner<ChestBehavior>(false,
-                new MonoBehaviorScanner<ChestBehavior>(logger), new MonoBehaviourSorter<ChestBehavior>(
-                    new ISorter<ChestBehavior>[] {
-                        new DefaultSorter<ChestBehavior>(InteractableKind.Chest, DefaultConverter, ChestSelector, DefaultActiveChecker),
-                        new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod, DefaultConverter, LunarPodSelector, DefaultActiveChecker),
-                    }
-                ), TrackedDimensions),
-                new MultiKindScanner<PurchaseInteraction>(false,
-                new MonoBehaviorScanner<PurchaseInteraction>(logger), new MonoBehaviourSorter<PurchaseInteraction>(
-                    new ISorter<PurchaseInteraction>[] {
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Printer, DefaultConverter, PrinterSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Special, DefaultConverter, FanSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Shop, DefaultConverter, ShopSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Equipment, DefaultConverter, EquipmentSelector, InteractionActiveChecker),
-                    }
-                ), TrackedDimensions),
+                CreateChestScanner(DefaultActiveChecker),
+                CreatePurchaseInteractionScanner(),
                 SimpleScanner<RouletteChestController>(InteractableKind.Chest),
                 SimpleScanner<ShrineBloodBehavior>(InteractableKind.Shrine),
                 SimpleScanner<ShrineChanceBehavior>(InteractableKind.Shrine),
