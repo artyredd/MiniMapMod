@@ -366,15 +366,56 @@ namespace MiniMapMod
             };
         }
 
+        private ITrackedObjectScanner CreateAliveEntityScanner()
+        {
+            bool EnemyMonsterSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Monster;
+
+            bool EnemyLunarSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Lunar;
+
+            bool EnemyVoidSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Void;
+
+            bool MinionSelector(TeamComponent team)
+            {
+                var isAlly = team?.teamIndex == TeamIndex.Player;
+                var isPlayer = team?.GetComponent<CharacterBody>()?.isPlayerControlled;
+                if (isPlayer is null)
+                {
+                    return isAlly;
+                }
+                return isAlly && (isPlayer == false);
+            }
+
+            bool PlayerSelector(TeamComponent team)
+            {
+                var isOwner = team?.GetComponent<NetworkStateMachine>()?.hasAuthority;
+                var isPlayer = team?.GetComponent<CharacterBody>()?.isPlayerControlled;
+                if (isOwner is null || isPlayer is null)
+                {
+                    return false;
+                }
+                return (isOwner == false) && (isPlayer == true);
+            }
+
+            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
+
+            return new MultiKindScanner<TeamComponent>(true,
+                new MonoBehaviorScanner<TeamComponent>(logger), new MonoBehaviourSorter<TeamComponent>(
+                    new ISorter<TeamComponent>[]
+                    {
+                        new DefaultSorter<TeamComponent>(InteractableKind.EnemyMonster, DefaultConverter, EnemyMonsterSelector, x => true),
+                        new DefaultSorter<TeamComponent>(InteractableKind.EnemyLunar, DefaultConverter, EnemyLunarSelector, x => true),
+                        new DefaultSorter<TeamComponent>(InteractableKind.EnemyVoid, DefaultConverter, EnemyVoidSelector, x => true),
+                        new DefaultSorter<TeamComponent>(InteractableKind.Minion, DefaultConverter, MinionSelector, x => true),
+                        new DefaultSorter<TeamComponent>(InteractableKind.Player, DefaultConverter, PlayerSelector, x => true),
+                    }
+                ), TrackedDimensions);
+        }
+
         private void CreateDynamicScanners()
         {
-            dynamicScanners = new ITrackedObjectScanner[] {
-                new SingleKindScanner<AimAssistTarget>(InteractableKind.Enemy, true, 
-                    scanner: new MonoBehaviorScanner<AimAssistTarget>(logger), 
-                    range: TrackedDimensions, 
-                    converter: x => x.gameObject, 
-                    activeChecker: x => true
-                )
+            dynamicScanners = new ITrackedObjectScanner[]
+            {
+                CreateAliveEntityScanner(),
             };
         }
 

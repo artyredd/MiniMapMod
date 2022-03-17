@@ -86,45 +86,60 @@ namespace MiniMapLibrary
                 InteractibleSettings.Add(type, setting);
             }
 
-            Add(InteractableKind.Chest, 10, 8, 
-                description: "Chests, including shops", 
+            Add(InteractableKind.Chest, 10, 8,
+                description: "Chests, Roulette Chests",
+                path: Icons.Chest);
+
+            Add(InteractableKind.Shop, 7, 7,
+                description: "Shops",
                 path: Icons.Chest);
 
             Add(InteractableKind.Equipment, 8, 6,
-                description: "Equipment barrels",
+                description: "Equipment Barrels",
                 path: Icons.Chest);
 
-            Add(InteractableKind.Shrine, 
-                description: "All shrines (excluding Newt)", 
+            Add(InteractableKind.Printer, 10, 8,
+                description: "Printers",
+                path: Icons.Chest);
+
+            Add(InteractableKind.Utility,
+                description: "Scrappers",
+                path: Icons.LootBag);
+
+            Add(InteractableKind.LunarPod, 7, 7,
+                description: "Lunar pods (chests)",
+                path: Icons.LootBag);
+
+            Add(InteractableKind.Shrine,
+                description: "All shrines (excluding Newt)",
                 path: Icons.Shrine);
            
-            Add(InteractableKind.Teleporter, 15, 15, 
-                ActiveColor: Color.white, 
-                InactiveColor: Color.green, 
+            Add(InteractableKind.Teleporter, 15, 15,
+                ActiveColor: Color.white,
+                InactiveColor: Color.green,
                 description: "Boss teleporters",
                 path: Icons.Boss);
 
-            Add(InteractableKind.Player, 8, 8, 
-                ActiveColor: PlayerIconColor, 
-                InactiveColor: PlayerIconColor, 
-                description: "Player, including friends",
+            Add(InteractableKind.Barrel, 5, 5,
+                description: "Barrels",
                 path: Icons.Circle);
 
-            Add(InteractableKind.Barrel, 5, 5, 
-                description: "Barrels", 
-                path: Icons.Circle);
-
-            Add(InteractableKind.Drone, 7, 7, 
-                description: "Drones", 
+            Add(InteractableKind.Drone, 7, 7,
+                description: "Drones",
                 path: Icons.Drone);
 
-            Add(InteractableKind.Special, 7, 7, 
+            Add(InteractableKind.Special, 7, 7,
                 description: "Special interactibles such as the landing pod and fans",
                 path: Icons.Default);
 
-            Add(InteractableKind.Enemy, 3, 3, 
-                ActiveColor: Color.red, 
+            Add(InteractableKind.EnemyMonster, 3, 3,
+                ActiveColor: Color.red,
                 description: "Enemies",
+                path: Icons.Circle);
+
+            Add(InteractableKind.EnemyLunar, 3, 3,
+                ActiveColor: Color.cyan,
+                description: "Lunar enemies",
                 path: Icons.Circle);
 
             Add(InteractableKind.EnemyVoid, 3, 3,
@@ -132,26 +147,16 @@ namespace MiniMapLibrary
                 description: "Void touched enemies",
                 path: Icons.Circle);
 
-            Add(InteractableKind.Ally, 3, 3,
+            Add(InteractableKind.Minion, 3, 3,
                 ActiveColor: Color.green,
-                description: "Allies and minions",
+                description: "Minions",
                 path: Icons.Circle);
 
-            Add(InteractableKind.Utility, 
-                description: "Scrappers", 
-                path: Icons.LootBag);
-
-            Add(InteractableKind.Printer, 10, 8, 
-                description: "Printers",
-                path: Icons.Chest);
-
-            Add(InteractableKind.LunarPod, 7, 7, 
-                description: "Lunar pods (chests)",
-                path: Icons.LootBag);
-
-            Add(InteractableKind.Shop, 7, 7,
-                description: "3 item shops",
-                path: Icons.Chest);
+            Add(InteractableKind.Player, 8, 8,
+                ActiveColor: PlayerIconColor,
+                InactiveColor: PlayerIconColor,
+                description: "Player, including friends",
+                path: Icons.Circle);
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)
