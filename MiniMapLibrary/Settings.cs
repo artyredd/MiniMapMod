@@ -138,7 +138,7 @@ namespace MiniMapLibrary
                 path: Icons.Circle);
 
             Add(InteractableKind.EnemyLunar, 3, 3,
-                ActiveColor: Color.cyan,
+                ActiveColor: Color.red,
                 description: "Lunar enemies",
                 path: Icons.Circle);
 
@@ -158,7 +158,7 @@ namespace MiniMapLibrary
                 description: "Player, including friends",
                 path: Icons.Circle);
 
-            Add(InteractableKind.Item, 8, 8,
+            Add(InteractableKind.Item, 3, 3,
                 ActiveColor: Color.cyan,
                 InactiveColor: Color.cyan,
                 description: "Dropped items and lunar coins",

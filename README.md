@@ -23,10 +23,11 @@ Adds a contemporary Minimap to the game.
 | Tree Shrine | ✔ | ✔ |
 | Combat Shrine | ✔ | ✔ |
 | Enemies | ✔ | ✔ |
+| Void Enemies | ✔ | ✔ |
+| Lunar Enemies | ✔ | ✔ |
 | Players | ✔ | ✔ |
 | Drones (broken) | ✔ | ✔ |
 | Allies (drones) | ✔ | ✔ |
-| Void Enemies | ✔ | ✔ |
 | Fans/Special | ✔ | ✔ |
 | Dropped Items | ✔ | ✔ |
 | Newt Altar | ❌ | ❌ |
