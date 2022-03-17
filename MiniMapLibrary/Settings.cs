@@ -15,19 +15,19 @@ namespace MiniMapLibrary
         all
     }
 
-    public static class Icons 
-    {
-        public const string Default = "";
-        public const string LootBag = "Textures/MiscIcons/texLootIconOutlined";
-        public const string Chest = "Textures/MiscIcons/texInventoryIconOutlined";
-        public const string Circle = "Textures/MiscIcons/texBarrelIcon";
-        public const string Shrine = "Textures/MiscIcons/texShrineIconOutlined";
-        public const string Boss = "Textures/MiscIcons/texTeleporterIconOutlined";
-        public const string Drone = "Textures/MiscIcons/texDroneIconOutlined";
-    }
-
     public static class Settings
     {
+        public static class Icons
+        {
+            public const string Default = "Textures/MiscIcons/texMysteryIcon";
+            public const string LootBag = "Textures/MiscIcons/texLootIconOutlined";
+            public const string Chest = "Textures/MiscIcons/texInventoryIconOutlined";
+            public const string Circle = "Textures/MiscIcons/texBarrelIcon";
+            public const string Shrine = "Textures/MiscIcons/texShrineIconOutlined";
+            public const string Boss = "Textures/MiscIcons/texTeleporterIconOutlined";
+            public const string Drone = "Textures/MiscIcons/texDroneIconOutlined";
+        }
+
         public static Dimension2D MinimapSize { get; set; } = new Dimension2D(100, 100);
 
         public static Dimension2D ViewfinderSize { get; set; } = new Dimension2D(10, 100);
@@ -42,11 +42,11 @@ namespace MiniMapLibrary
 
         public static Color DefaultInactiveColor { get; set; } = Color.grey;
 
-        public const string DefaultResourcePath = "Textures/MiscIcons/texMysteryIcon";
-
         public static LogLevel LogLevel => _logLevel.Value;
 
         private static IConfigEntry<LogLevel> _logLevel;
+
+        private static ILogger logger;
 
         static Settings()
         {
@@ -61,7 +61,7 @@ namespace MiniMapLibrary
                 Color ActiveColor = default, 
                 Color InactiveColor = default, 
                 string description = "",
-                string path = DefaultResourcePath)
+                string path = Icons.Default)
             {
                 ActiveColor = ActiveColor == default ? DefaultActiveColor : ActiveColor;
                 InactiveColor = InactiveColor == default ? DefaultInactiveColor : InactiveColor;
@@ -167,7 +167,7 @@ namespace MiniMapLibrary
                 ActiveColor = DefaultActiveColor,
                 InactiveColor = DefaultInactiveColor,
                 Description = "NO_DESCRIPTION",
-                IconPath = DefaultResourcePath
+                IconPath = Icons.Default
             };
         }
 
@@ -187,29 +187,40 @@ namespace MiniMapLibrary
         {
             if (InteractibleSettings.ContainsKey(type))
             {
-                return InteractibleSettings[type].Dimensions ?? DefaultUIElementSize;
+                return InteractibleSettings[type]?.Dimensions ?? DefaultUIElementSize;
             }
 
             return DefaultUIElementSize;
         }
 
-        public static void LoadApplicationSettings(IConfig config) 
+        public static void LoadApplicationSettings(ILogger logger, IConfig config) 
         {
+            Settings.logger = logger;
             _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
         }
 
         public static void LoadConfigEntries(InteractableKind type, IConfig config)
         {
-            InteractibleSetting setting = InteractibleSettings[type];
+            InteractibleSetting setting;
 
-            IConfigEntry<bool> enabled = config.Bind<bool>($"Icon.{type}", "enabled", true, $"Whether or not {setting.Description} should be shown on the minimap");
-            IConfigEntry<Color> activeColor = config.Bind<Color>($"Icon.{type}", "activeColor", setting.ActiveColor, "The color the icon should be when it has not been interacted with");
-            IConfigEntry<Color> inactiveColor = config.Bind<Color>($"Icon.{type}", "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
-            IConfigEntry<float> width = config.Bind<float>($"Icon.{type}", "width", setting.Dimensions.Width, "Width of the icon");
-            IConfigEntry<float> height = config.Bind<float>($"Icon.{type}", "height", setting.Dimensions.Height, "Width of the icon");
-            IConfigEntry<string> path = config.Bind<string>($"Icon.{type}", "icon", setting.IconPath ?? DefaultResourcePath, $"The streaming assets path of the icon");
+            if (InteractibleSettings.ContainsKey(type) is false)
+            {
+                logger.LogError($"Failed to find an interactible setting for {type}, aborting config loading for {type}s");
+                return;
+            }
 
-            InteractibleSettings[type].Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor, path);
+            setting = InteractibleSettings[type];
+
+            string sectionTitle = $"Icon.{type}";
+
+            IConfigEntry<bool> enabled = config.Bind<bool>(sectionTitle, "enabled", true, $"Whether or not {setting.Description} should be shown on the minimap");
+            IConfigEntry<Color> activeColor = config.Bind<Color>(sectionTitle, "activeColor", setting.ActiveColor, "The color the icon should be when it has not been interacted with");
+            IConfigEntry<Color> inactiveColor = config.Bind<Color>(sectionTitle, "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
+            IConfigEntry<float> width = config.Bind<float>(sectionTitle, "width", setting.Dimensions.Width, "Width of the icon");
+            IConfigEntry<float> height = config.Bind<float>(sectionTitle, "height", setting.Dimensions.Height, "Width of the icon");
+            IConfigEntry<string> path = config.Bind<string>(sectionTitle, "icon", setting.IconPath ?? Icons.Default, $"The streaming assets path of the icon");
+
+            setting.Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor, path);
 
             setting.ActiveColor = activeColor.Value;
             setting.InactiveColor = inactiveColor.Value;

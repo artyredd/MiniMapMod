@@ -48,7 +48,7 @@ namespace MiniMapMod
             // wrap bepinex config so we can pass it to business layer
             config = new ConfigAdapter(this.Config);
 
-            Settings.LoadApplicationSettings(config);
+            Settings.LoadApplicationSettings(logger, config);
 
             logger.LogInfo($"Loaded log level: {Settings.LogLevel}");
 
@@ -117,6 +117,8 @@ namespace MiniMapMod
                     }
                     catch (NullReferenceException)
                     {
+                        // we'll encounter null references when other mods or the game itself
+                        // destroys entities we are tracking at runtime
                         logger.LogDebug($"{nameof(NullReferenceException)} was encountered while updating positions, reseting minimap");
                         Reset();
                     }
@@ -193,11 +195,11 @@ namespace MiniMapMod
                 return false;
             }
 
-            logger.LogInfo("MINIMAP: Creating Minimap object");
+            logger.LogInfo("Creating Minimap object");
 
             Minimap.CreateMinimap(this.SpriteManager, objectivePanel.gameObject);
 
-            logger.LogInfo("MINIMAP: Finished creating Minimap");
+            logger.LogInfo("Finished creating Minimap");
 
             return true;
         }
