@@ -363,6 +363,7 @@ namespace MiniMapMod
                 SimpleScanner<TeleporterInteraction>(InteractableKind.Teleporter, activeChecker: (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged),
                 SimpleScanner<SummonMasterBehavior>(InteractableKind.Drone),
                 SimpleScanner<GenericInteraction>(InteractableKind.Special),
+                SimpleScanner<GenericPickupController>(InteractableKind.Item),
                 SimpleScanner<BarrelInteraction>(InteractableKind.Barrel, activeChecker: barrel => !barrel.Networkopened),
             };
         }

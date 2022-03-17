@@ -157,6 +157,12 @@ namespace MiniMapLibrary
                 InactiveColor: PlayerIconColor,
                 description: "Player, including friends",
                 path: Icons.Circle);
+
+            Add(InteractableKind.Item, 8, 8,
+                ActiveColor: Color.cyan,
+                InactiveColor: Color.cyan,
+                description: "Dropped items and lunar coins",
+                path: Icons.Circle);
         }
 
         public static InteractibleSetting GetSetting(InteractableKind type)

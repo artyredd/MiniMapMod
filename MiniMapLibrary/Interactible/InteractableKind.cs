@@ -25,6 +25,7 @@ namespace MiniMapLibrary
         EnemyVoid = 1 << 13,
         Minion = 1 << 14,
         Player = 1 << 15,
+        Item =  1 << 16,
         All = 0xFFFF
     }
 }
