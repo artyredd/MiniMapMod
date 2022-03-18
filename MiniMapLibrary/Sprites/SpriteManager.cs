@@ -64,6 +64,8 @@ namespace MiniMapLibrary
                     return null;
                 }
 
+                logger.LogWarning($"Attempted to load icon texture at streaming asset path: {Path}, but it was not found, using default [?] instead.");
+
                 SpriteCache.Add(Path, loaded);
             }
 
