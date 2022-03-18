@@ -76,14 +76,19 @@ Huge thanks to these awesome people who assisted in creating awesome features fo
 [Arcafanetiz](https://github.com/Arcafanetiz)
 
 ### Change Log
+Minor 3.2.1
+- fixed bug where chosing wrong icon path in config would lag and crash game with MissingTextureExceptions thrown by `SpriteManager.GetOrCache`
+
 Major 3.2
-- Re-implemented scanning framework for performance
+- Re-implemented entire scanning framework for performance to allow more dynamic types at runtime
 - Added Equipment Barrels
 - Added Shops
 - Added Void Enemies
+- Added Lunar Enemies
 - Added Players (non-client)
 - Added Allies (drones that have been bought)
 - Added Dropped Items / Lunar Coins
+- Fixed bug where the no meaningful stacktrace was being outputted to the log for user debugging
 
 Hotfix 3.1.6
 - fixed typo causing all objects on map being selected to be placed on minimap regardless if they were filtered out

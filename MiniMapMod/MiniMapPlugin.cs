@@ -12,10 +12,10 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.2.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.2.1")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
-        private readonly ISpriteManager SpriteManager = new SpriteManager();
+        private ISpriteManager SpriteManager;
 
         private readonly List<ITrackedObject> TrackedObjects = new();
 
@@ -39,6 +39,8 @@ namespace MiniMapMod
             // wrap the bepinex logger with an adapter so 
             // we can pass it to the business layer
             logger = new Log(base.Logger);
+
+            SpriteManager = new SpriteManager(logger);
 
             // create the minimap controller
             Minimap = new(logger);
