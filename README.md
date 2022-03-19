@@ -76,14 +76,29 @@ Huge thanks to these awesome people who assisted in creating awesome features fo
 [Arcafanetiz](https://github.com/Arcafanetiz)
 
 ### Change Log
+Major 3.3
+- performance major, limited min time between scans to 2 seconds, previous was unlimited, when in 2hr+ runs auto-enemy killing builds caused constant scene scanning
+- fixed bug where chosing wrong icon path in config would lag and crash game with MissingTextureExceptions thrown by `SpriteManager.GetOrCache`
+- added portals
+- added gold shrine
+- added neutral enemy/items/objects (excluding buttons)
+- changed some default sizes for icons
+- added new icons
+- changed player icon
+- changed Void Enemy icon
+- added pillars and totems
+- changed default colors for icons
+
 Major 3.2
-- Re-implemented scanning framework for performance
+- Re-implemented entire scanning framework for performance to allow more dynamic types at runtime
 - Added Equipment Barrels
 - Added Shops
 - Added Void Enemies
+- Added Lunar Enemies
 - Added Players (non-client)
 - Added Allies (drones that have been bought)
 - Added Dropped Items / Lunar Coins
+- Fixed bug where the no meaningful stacktrace was being outputted to the log for user debugging
 
 Hotfix 3.1.6
 - fixed typo causing all objects on map being selected to be placed on minimap regardless if they were filtered out

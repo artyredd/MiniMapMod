@@ -26,6 +26,9 @@ namespace MiniMapLibrary
         Minion = 1 << 14,
         Player = 1 << 15,
         Item =  1 << 16,
-        All = 0xFFFF
+        Portal = 1 << 17,
+        Totem = 1 << 18,
+        Neutral = 1 << 19,
+        All = int.MaxValue
     }
 }

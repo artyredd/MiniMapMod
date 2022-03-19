@@ -12,6 +12,13 @@ namespace MiniMapLibrary
     {
         private readonly Dictionary<string, Sprite> SpriteCache = new Dictionary<string, Sprite>();
 
+        private readonly ILogger logger;
+
+        public SpriteManager(ILogger logger)
+        {
+            this.logger = logger;
+        }
+
         public void Dispose()
         {
             SpriteCache.Clear();
@@ -49,7 +56,17 @@ namespace MiniMapLibrary
             }
             else 
             {
-                throw new MissingComponentException($"MissingTextureException: {Path} does not exist within the streaming assets");
+                loaded = Resources.Load<Sprite>(Settings.Icons.Default);
+
+                if (loaded is null)
+                {
+                    logger.LogError($"Attempted to use default icon for non-existen texture at {Path} but default icon path of {Settings.Icons.Default} also failed to load from the streaming assets path.");
+                    return null;
+                }
+
+                logger.LogWarning($"Attempted to load icon texture at streaming asset path: {Path}, but it was not found, using default [?] instead.");
+
+                SpriteCache.Add(Path, loaded);
             }
 
             return loaded;

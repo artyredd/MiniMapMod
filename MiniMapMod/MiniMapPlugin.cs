@@ -12,10 +12,10 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.2.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.0")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
-        private readonly ISpriteManager SpriteManager = new SpriteManager();
+        private ISpriteManager SpriteManager;
 
         private readonly List<ITrackedObject> TrackedObjects = new();
 
@@ -34,11 +34,16 @@ namespace MiniMapMod
         private ITrackedObjectScanner[] staticScanners;
         private ITrackedObjectScanner[] dynamicScanners;
 
+        private readonly Timer dynamicScanTimer = new(5.0f);
+        private readonly Timer cooldownTimer = new(2.0f, false) { Value = -1.0f };
+
         public void Awake()
         {
             // wrap the bepinex logger with an adapter so 
             // we can pass it to the business layer
             logger = new Log(base.Logger);
+
+            SpriteManager = new SpriteManager(logger);
 
             // create the minimap controller
             Minimap = new(logger);
@@ -75,6 +80,9 @@ namespace MiniMapMod
             // this will re-scan when the player uses anything like a chest
             // or the landing pod
             GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
+
+            // update the minimap automatically every N seconds regardless of deaths etc
+            dynamicScanTimer.OnFinished += (x) => ScanScene();
         }
 
         //The Update() method is run on every frame of the game.
@@ -91,6 +99,9 @@ namespace MiniMapMod
                     return;
                 }
             }
+
+            cooldownTimer.Update(Time.deltaTime);
+            dynamicScanTimer.Update(Time.deltaTime);
 
             if (Enable)
             {
@@ -210,6 +221,9 @@ namespace MiniMapMod
             logger.LogDebug($"Destroying {nameof(Minimap)}");
             Minimap.Destroy();
 
+            dynamicScanTimer.Reset();
+            cooldownTimer.Reset();
+
             // mark the scene as scannable again so we scan for chests etc..
             ScannedStaticObjects = false;
         }
@@ -222,6 +236,17 @@ namespace MiniMapMod
             // errors
             try
             {
+                if (cooldownTimer.Started is false)
+                {
+                    cooldownTimer.Start();
+                }else if (cooldownTimer.Expired is false)
+                {
+                    return;
+                }
+
+                cooldownTimer.Reset();
+                cooldownTimer.Start();
+
                 logger.LogDebug("Scanning Scene");
 
                 logger.LogDebug("Clearing dynamically tracked objects");
@@ -289,6 +314,25 @@ namespace MiniMapMod
                 ), TrackedDimensions);
         }
 
+        private ITrackedObjectScanner CreateGenericInteractionScanner()
+        {
+            bool PortalSelector(GenericInteraction interaction) => interaction?.contextToken?.Contains("PORTAL") ?? false;
+
+            bool DefaultSelector(GenericInteraction interaction) => true;
+
+            bool GenericActiveChecker(GenericInteraction interaction) => interaction?.isActiveAndEnabled ?? true;
+
+            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
+
+            return new MultiKindScanner<GenericInteraction>(false,
+                new MonoBehaviorScanner<GenericInteraction>(logger), new MonoBehaviourSorter<GenericInteraction>(
+                    new ISorter<GenericInteraction>[] {
+                        new DefaultSorter<GenericInteraction>(InteractableKind.Portal, DefaultConverter, PortalSelector, GenericActiveChecker),
+                        new DefaultSorter<GenericInteraction>(InteractableKind.Special, DefaultConverter, DefaultSelector, GenericActiveChecker)
+                    }
+                ), TrackedDimensions);
+        }
+
         private ITrackedObjectScanner CreatePurchaseInteractionScanner()
         {
             bool FanSelector(PurchaseInteraction interaction) => interaction?.contextToken == "FAN_CONTEXT";
@@ -298,6 +342,10 @@ namespace MiniMapMod
             bool ShopSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TERMINAL") ?? false;
 
             bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIP") ?? false;
+
+            bool GoldShoresSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("GOLDSHORE") ?? false;
+
+            bool GoldShoresBeaconSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TOTEM") ?? false;
 
             bool InteractionActiveChecker(PurchaseInteraction interaction) => interaction?.available ?? true;
 
@@ -310,6 +358,8 @@ namespace MiniMapMod
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Special, DefaultConverter, FanSelector, InteractionActiveChecker),
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Shop, DefaultConverter, ShopSelector, InteractionActiveChecker),
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Equipment, DefaultConverter, EquipmentSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Portal, DefaultConverter, GoldShoresSelector, InteractionActiveChecker),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Totem, DefaultConverter, GoldShoresBeaconSelector, GoldShoresSelector),
                     }
                 ), TrackedDimensions);
         }
@@ -352,6 +402,7 @@ namespace MiniMapMod
             staticScanners = new ITrackedObjectScanner[] {
                 CreateChestScanner(DefaultActiveChecker),
                 CreatePurchaseInteractionScanner(),
+                CreateGenericInteractionScanner(),
                 SimpleScanner<RouletteChestController>(InteractableKind.Chest),
                 SimpleScanner<ShrineBloodBehavior>(InteractableKind.Shrine),
                 SimpleScanner<ShrineChanceBehavior>(InteractableKind.Shrine),
@@ -362,7 +413,6 @@ namespace MiniMapMod
                 SimpleScanner<ScrapperController>(InteractableKind.Utility),
                 SimpleScanner<TeleporterInteraction>(InteractableKind.Teleporter, activeChecker: (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged),
                 SimpleScanner<SummonMasterBehavior>(InteractableKind.Drone),
-                SimpleScanner<GenericInteraction>(InteractableKind.Special),
                 SimpleScanner<BarrelInteraction>(InteractableKind.Barrel, activeChecker: barrel => !barrel.Networkopened),
             };
         }
@@ -374,6 +424,8 @@ namespace MiniMapMod
             bool EnemyLunarSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Lunar;
 
             bool EnemyVoidSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Void;
+
+            bool NeutralSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Neutral;
 
             bool MinionSelector(TeamComponent team)
             {
@@ -408,6 +460,7 @@ namespace MiniMapMod
                         new DefaultSorter<TeamComponent>(InteractableKind.EnemyVoid, DefaultConverter, EnemyVoidSelector, x => true),
                         new DefaultSorter<TeamComponent>(InteractableKind.Minion, DefaultConverter, MinionSelector, x => true),
                         new DefaultSorter<TeamComponent>(InteractableKind.Player, DefaultConverter, PlayerSelector, x => true),
+                        new DefaultSorter<TeamComponent>(InteractableKind.Neutral, DefaultConverter, NeutralSelector, x => x?.gameObject.activeSelf ?? true),
                     }
                 ), TrackedDimensions);
         }
@@ -424,7 +477,8 @@ namespace MiniMapMod
                     range: TrackedDimensions,
                     converter: x => x.gameObject,
                     activeChecker: x => true
-                )
+                ),
+                CreateGenericInteractionScanner()
             };
         }
 
