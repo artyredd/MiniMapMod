@@ -72,6 +72,18 @@ namespace MiniMapLibrary
 
         private static IConfigEntry<LogLevel> _logLevel;
 
+        public static float MinimapScale => _minimapScale.Value;
+        private static IConfigEntry<float> _minimapScale;
+
+        public static KeyCode MinimapKey => _MiniMapKey.Value;
+        private static IConfigEntry<KeyCode> _MiniMapKey;
+
+        public static KeyCode MinimapIncreaseScaleKey => _MinimapIncreaseScaleKey.Value;
+        private static IConfigEntry<KeyCode> _MinimapIncreaseScaleKey;
+
+        public static KeyCode MinimapDecreaseScaleKey => _MinimapDecreaseScaleKey.Value;
+        private static IConfigEntry<KeyCode> _MinimapDecreaseScaleKey;
+
         private static ILogger logger;
 
         static Settings()
@@ -271,7 +283,12 @@ namespace MiniMapLibrary
         {
             Settings.logger = logger;
             _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
-            logger.LogDebug($"Loaded log level: {Settings.LogLevel}");
+            _MinimapDecreaseScaleKey = config.Bind<KeyCode>($"Settings.Zoom", "UnZoomKey", KeyCode.Minus, "Zooms the minimap OUT");
+            _MinimapIncreaseScaleKey = config.Bind<KeyCode>($"Settings.Zoom", "ZoomKey", KeyCode.Equals, "Zooms the minimap IN");
+            _MiniMapKey  = config.Bind<KeyCode>($"Settings.General", "EnableKey", KeyCode.M, "Key that enables or disabled the minimap");
+            _minimapScale = config.Bind<float>($"Settings.Zoom", "zoomLevel", 1.0f, "How far the minimap should be zoomed in");
+            
+            logger.LogDebug($"Loaded log level: {Settings.LogLevel} Minimap[Key: {MinimapKey}] Zoom[{Settings.MinimapScale * 100}% UnZoomKey:{MinimapDecreaseScaleKey} ZoomKey:{MinimapIncreaseScaleKey}]");
         }
 
         public static void LoadConfigEntries(InteractableKind type, IConfig config)

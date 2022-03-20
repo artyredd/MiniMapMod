@@ -42,7 +42,7 @@ namespace MiniMapLibrary
 
             SetParent(gameObject, Parent);
 
-            // make sure it's the last thing within the objective box
+            // make sure it's the first thing within the objective box
             gameObject.transform.SetAsFirstSibling();
 
             CreateIconContainer();

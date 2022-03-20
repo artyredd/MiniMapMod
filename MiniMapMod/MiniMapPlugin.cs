@@ -89,7 +89,7 @@ namespace MiniMapMod
         //The Update() method is run on every frame of the game.
         private void Update()
         {
-            if (UnityEngine.Input.GetKeyDown(KeyCode.M))
+            if (UnityEngine.Input.GetKeyDown(Settings.MinimapKey))
             {
                 Enable = !Enable;
 
@@ -121,6 +121,15 @@ namespace MiniMapMod
                         Minimap.SetRotation(Camera.main.transform.rotation);
 
                         UpdateIconPositions();
+
+                        if (Input.GetKeyDown(Settings.MinimapIncreaseScaleKey))
+                        {
+                            Minimap.Container.transform.localScale *= 1.1f;
+                        }else 
+                        if (Input.GetKeyDown(Settings.MinimapDecreaseScaleKey))
+                        {
+                            Minimap.Container.transform.localScale *= 0.90f;
+                        }
                     }
                     catch (NullReferenceException)
                     {
@@ -207,6 +216,8 @@ namespace MiniMapMod
 
             Minimap.CreateMinimap(this.SpriteManager, objectivePanel.gameObject);
 
+            Minimap.Container.transform.localScale = Vector3.one * Settings.MinimapScale;
+
             logger.LogInfo("Finished creating Minimap");
 
             return true;
@@ -234,6 +245,11 @@ namespace MiniMapMod
 
         private void ScanScene()
         {
+            // don't scan if the minimap isn't enabled
+            if (Enable == false)
+            {
+                return;
+            }
             // when other mods hook into the various global events
             // and this method throws exceptions, the entire event will throw and fail to invoke their methods
             // as a result, this method should never throw an exception and should output meaningful

@@ -88,6 +88,10 @@ Minor 3.1.1
 - equipment drones no longer show up as equipment
 - fixed stack trace logging to be more meaningful
 - added elevation markers for all icons denoting where they are located vertically from player
+- added long over due zoom feature
+- added minimap key to config
+- added zoom keys to config
+- added minimap scale to config to save zoom level between sessions
 
 Major 3.3
 - performance major, limited min time between scans to 2 seconds, previous was unlimited, when in 2hr+ runs auto-enemy killing builds caused constant scene scanning
