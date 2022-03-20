@@ -104,7 +104,7 @@ namespace MiniMapLibrary
 
             transform.localPosition = minimapPosition;
 
-            SetParent(transform, ContainerTransform);
+            Helpers.Transforms.SetParent(transform, ContainerTransform);
 
             return transform;
         }
@@ -136,24 +136,13 @@ namespace MiniMapLibrary
 
         private GameObject CreateIcon(InteractableKind type, Sprite iconTexture)
         {
-            return Create(icon =>
-            {
-                icon.name = type.ToString();
+            InteractibleSetting settings = Settings.GetSetting(type);
 
-                var transform = icon.AddComponent<RectTransform>();
+            GameObject icon = Helpers.Sprites.CreateIcon(iconTexture, settings.Dimensions.Width, settings.Dimensions.Height, settings.ActiveColor);
 
-                InteractibleSetting settings = Settings.GetSetting(type);
+            icon.name = type.ToString();
 
-                transform.sizeDelta = new Vector2(settings.Dimensions.Width, settings.Dimensions.Height);
-
-                icon.AddComponent<CanvasRenderer>();
-
-                var image = icon.AddComponent<Image>();
-
-                image.sprite = iconTexture;
-
-                image.color = settings.ActiveColor;
-            });
+            return icon;
         }
 
         private GameObject CreateMask()
@@ -183,20 +172,9 @@ namespace MiniMapLibrary
 
         private GameObject SetParent(GameObject child, GameObject parent)
         {
-            SetParent(child.transform, parent.transform);
+            Helpers.Transforms.SetParent(child.transform, parent.transform);
 
             return child;
-        }
-
-        private void SetParent(Transform child, Transform parent)
-        {
-            child.transform.SetParent(parent);
-
-            child.transform.localRotation = Quaternion.identity;
-
-            child.transform.localPosition = new Vector3(0, 0, 0);
-
-            child.transform.localScale = new Vector3(1, 1, 1);
         }
 
         private GameObject Create(Action<GameObject> Expression)

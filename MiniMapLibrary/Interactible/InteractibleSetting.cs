@@ -13,6 +13,10 @@ namespace MiniMapLibrary
         public Color InactiveColor { get; set; }
         public string Description { get; set; }
         public string IconPath { get; set; }
+        public Dimension2D ElevationMarkerOffset { get; set; }
+        public Dimension2D ElevationMarkerDimensions { get; set; }
+        public bool ElevationMarkerEnabled { get; set; }
+        public Color ElevationMarkerColor { get; set; }
         public ISettingConfigGroup Config;
     }
 }

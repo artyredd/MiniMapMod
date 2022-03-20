@@ -11,13 +11,17 @@ namespace MiniMapLibrary.Scanner
         private readonly IInteractibleSorter<T> sorter;
         private readonly bool dynamic;
         private readonly Range3D range;
+        private readonly ISpriteManager spriteManager;
+        private readonly Func<float> playerHeightRetriever;
 
-        public MultiKindScanner(bool dynamic, IScanner<T> scanner, IInteractibleSorter<T> sorter, Range3D range)
+        public MultiKindScanner(bool dynamic, IScanner<T> scanner, IInteractibleSorter<T> sorter, Range3D range, ISpriteManager spriteManager, Func<float> playerHeightRetriever)
         {
             this.scanner = scanner;
             this.sorter = sorter;
             this.dynamic = dynamic;
             this.range = range;
+            this.spriteManager = spriteManager;
+            this.playerHeightRetriever = playerHeightRetriever;
         }
 
         public void ScanScene(IList<ITrackedObject> list)
@@ -28,11 +32,12 @@ namespace MiniMapLibrary.Scanner
             {
                 if (sorter.TrySort(item, out InteractableKind kind, out GameObject gameObject, out Func<T, bool> activeChecker))
                 {
-                    list.Add(new TrackedObject<T>(kind, gameObject, null) {
+                    list.Add(new ElevationTrackedObject(new TrackedObject<T>(kind, gameObject, null)
+                    {
                         BackingObject = item,
                         ActiveChecker = activeChecker,
                         DynamicObject = dynamic
-                    });
+                    }, spriteManager, playerHeightRetriever));
 
                     range.CheckValue(gameObject.transform.position);
                 }

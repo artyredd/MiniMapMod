@@ -42,6 +42,13 @@ namespace MiniMapLibrary.Scanner
 
         private bool PreviousActive = true;
 
+        public TrackedObject(InteractableKind interactableType, GameObject gameObject, RectTransform minimapTransform)
+        {
+            this.gameObject = gameObject;
+            MinimapTransform = minimapTransform;
+            InteractableType = interactableType;
+        }
+
         public void Destroy()
         {
             try
@@ -58,34 +65,38 @@ namespace MiniMapLibrary.Scanner
 
         public void CheckActive()
         {
-            if (ActiveChecker != null && BackingObject != null)
+            if (BackingObject is null)
             {
-                try
-                {
-                    Active = ActiveChecker(BackingObject);
-                }
-                catch (Exception)
-                {
-                    // intentionally eat the exception while trying to destroy the gameobject
-                    // if other mods or the scene destroys the UI we dont want to throw exceptions
-                    // this is expected
-                    Active = false;
-                }
+                Active = false;
 
-                if (PreviousActive != Active)
-                {
-                    PreviousActive = Active;
+                UpdateColor();
 
-                    MinimapImage.color = Settings.GetColor(InteractableType, Active);
-                }
+                return;
             }
+
+            try
+            {
+                Active = ActiveChecker?.Invoke(BackingObject) ?? false;
+            }
+            catch (Exception)
+            {
+                // intentionally eat the exception while trying to destroy the gameobject
+                // if other mods or the scene destroys the UI we dont want to throw exceptions
+                // this is expected
+                Active = false;
+            }
+
+            UpdateColor();
         }
 
-        public TrackedObject(InteractableKind interactableType, GameObject gameObject, RectTransform minimapTransform)
+        private void UpdateColor()
         {
-            this.gameObject = gameObject;
-            MinimapTransform = minimapTransform;
-            InteractableType = interactableType;
+            if (PreviousActive != Active)
+            {
+                PreviousActive = Active;
+
+                MinimapImage.color = Settings.GetColor(InteractableType, Active);
+            }
         }
     }
 }

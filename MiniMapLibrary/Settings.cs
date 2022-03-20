@@ -64,6 +64,10 @@ namespace MiniMapLibrary
 
         public static Color DefaultInactiveColor { get; set; } = Color.grey;
 
+        public static Color DefaultElevationMarkerColor { get; set; } = Color.white;
+
+        public static Dimension2D DefaultElevationSize { get; set; } = new Dimension2D(3.0f, 3.0f);
+
         public static LogLevel LogLevel => _logLevel.Value;
 
         private static IConfigEntry<LogLevel> _logLevel;
@@ -83,10 +87,13 @@ namespace MiniMapLibrary
                 Color activeColor = default, 
                 Color inactiveColor = default, 
                 string description = "",
-                string path = Icons.Default)
+                string path = Icons.Default,
+                Color elevationMarkerColor = default
+            )
             {
                 activeColor = activeColor == default ? DefaultActiveColor : activeColor;
                 inactiveColor = inactiveColor == default ? DefaultInactiveColor : inactiveColor;
+                elevationMarkerColor = elevationMarkerColor == default ? DefaultElevationMarkerColor : elevationMarkerColor;
 
                 Dimension2D size = DefaultUIElementSize;
 
@@ -104,6 +111,14 @@ namespace MiniMapLibrary
 
                 setting.Description = description;
                 setting.IconPath = path;
+
+                setting.ElevationMarkerColor = elevationMarkerColor;
+                setting.ElevationMarkerEnabled = true;
+                setting.ElevationMarkerDimensions = new Dimension2D(DefaultElevationSize.Width, DefaultElevationSize.Height);
+                setting.ElevationMarkerOffset = new Dimension2D(
+                    (size.Width / 2.0f) + (DefaultElevationSize.Width / 2.0f), 
+                    (size.Height / 2.0f) + (DefaultElevationSize.Height / 2.0f)
+                );
 
                 InteractibleSettings.Add(type, setting);
             }
@@ -160,21 +175,25 @@ namespace MiniMapLibrary
 
             Add(InteractableKind.EnemyMonster, 3, 3,
                 activeColor: Color.red,
+                elevationMarkerColor: Color.red,
                 description: "Enemies",
                 path: Icons.Circle);
 
             Add(InteractableKind.EnemyLunar, 3, 3,
                 activeColor: Color.red,
+                elevationMarkerColor: Color.red,
                 description: "Lunar enemies",
                 path: Icons.Circle);
 
             Add(InteractableKind.EnemyVoid, 12, 12,
                 activeColor: Color.magenta,
+                elevationMarkerColor: Color.magenta,
                 description: "Void touched enemies",
                 path: Icons.Attack);
 
             Add(InteractableKind.Minion, 3, 3,
                 activeColor: Color.green,
+                elevationMarkerColor: Color.green,
                 description: "Minions",
                 path: Icons.Circle);
 
@@ -276,15 +295,37 @@ namespace MiniMapLibrary
             IConfigEntry<float> height = config.Bind<float>(sectionTitle, "height", setting.Dimensions.Height, "Width of the icon");
             IConfigEntry<string> path = config.Bind<string>(sectionTitle, "icon", setting.IconPath ?? Icons.Default, $"The streaming assets path of the icon");
 
-            setting.Config = new SettingConfigGroup(enabled, height, width, activeColor, inactiveColor, path);
+            IConfigEntry<bool> elevationEnabled = config.Bind<bool>(sectionTitle, "elevationMarkerEnabled", true, $"Whether or not the elevation marker for this icon should be shown on the minimap");
+            IConfigEntry<Color> elevationActiveColor = config.Bind<Color>(sectionTitle, "elevationMarkerColor", setting.ElevationMarkerColor, "The color the elevation marker should be when it is shown");
+            IConfigEntry<float> elevationWidth = config.Bind<float>(sectionTitle, "elevationMarkerWidth", setting.ElevationMarkerDimensions.Width, "Width of the elevation marker icon");
+            IConfigEntry<float> elevationHeight = config.Bind<float>(sectionTitle, "elevationMarkerHeight", setting.ElevationMarkerDimensions.Height, "Width of the elevation marker  icon");
+            IConfigEntry<Vector2> elevationOffset = config.Bind<Vector2>(sectionTitle, "elevationMarkerOffset", new Vector2(setting.ElevationMarkerOffset.Width, setting.ElevationMarkerOffset.Height), "The value of the x and y of the elevation marker's position relative to the main icon's center");
+
+            setting.Config = new SettingConfigGroup(
+                enabled, 
+                height, 
+                width, 
+                activeColor, 
+                inactiveColor, 
+                path,
+                elevationEnabled,
+                elevationOffset,
+                elevationHeight,
+                elevationWidth,
+                elevationActiveColor
+            );
 
             setting.ActiveColor = activeColor.Value;
             setting.InactiveColor = inactiveColor.Value;
             setting.Dimensions.Height = height.Value;
             setting.Dimensions.Width = width.Value;
             setting.IconPath = path.Value;
+            setting.ElevationMarkerColor = elevationActiveColor.Value;
+            setting.ElevationMarkerEnabled = elevationEnabled.Value;
+            setting.ElevationMarkerOffset = new Dimension2D(elevationOffset.Value.x, elevationOffset.Value.y);
+            setting.ElevationMarkerDimensions = new Dimension2D(elevationWidth.Value, elevationHeight.Value);
 
-            logger.LogInfo($"Loaded {type} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})]");
+            logger.LogInfo($"Loaded {type} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})] Elevation [{(setting.Config.EnabledElevationMarker.Value ? "enabled" : "disabled")}, {setting.ElevationMarkerColor}, dimensions: ({setting.ElevationMarkerDimensions.Width}x{setting.ElevationMarkerDimensions.Height}), offset: ({setting.ElevationMarkerOffset.Width}x{setting.ElevationMarkerOffset.Height})]");
         }
     }
 }

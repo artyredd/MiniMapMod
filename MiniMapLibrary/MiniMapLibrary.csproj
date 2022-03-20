@@ -14,6 +14,9 @@
 		<Reference Include="UnityEngine.UI">
 		  <HintPath>..\MiniMapMod\libs\UnityEngine.UI.dll</HintPath>
 		</Reference>
+		<Reference Include="UnityEngine.UIModule">
+		  <HintPath>..\MiniMapMod\libs\UnityEngine.UIModule.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>

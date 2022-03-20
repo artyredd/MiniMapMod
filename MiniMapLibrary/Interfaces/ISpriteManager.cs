@@ -8,6 +8,8 @@ namespace MiniMapLibrary
     /// </summary>
     public interface ISpriteManager : IDisposable
     {
+        Sprite GetOrCache(string Path);
+
         /// <summary>
         /// Uses the provided <see cref="InteractableKind"/> to generate/provide and return a sprite that should represent that kind in the minimap
         /// </summary>

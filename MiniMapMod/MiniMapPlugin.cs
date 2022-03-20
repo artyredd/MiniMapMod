@@ -36,6 +36,7 @@ namespace MiniMapMod
 
         private readonly Timer dynamicScanTimer = new(5.0f);
         private readonly Timer cooldownTimer = new(2.0f, false) { Value = -1.0f };
+        private CameraRigController cameraRig;
 
         public void Awake()
         {
@@ -187,6 +188,7 @@ namespace MiniMapMod
                 }
 
                 // check to see if its active and whether to change its color
+                // check the position to see if we should show arrow
                 item.CheckActive();
             }
         }
@@ -226,6 +228,8 @@ namespace MiniMapMod
 
             // mark the scene as scannable again so we scan for chests etc..
             ScannedStaticObjects = false;
+
+            cameraRig = null;
         }
 
         private void ScanScene()
@@ -311,7 +315,7 @@ namespace MiniMapMod
                         new DefaultSorter<ChestBehavior>(InteractableKind.Chest, x => x.gameObject, ChestSelector, activeChecker),
                         new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod,  x => x.gameObject, LunarPodSelector, activeChecker),
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private ITrackedObjectScanner CreateGenericInteractionScanner()
@@ -330,7 +334,7 @@ namespace MiniMapMod
                         new DefaultSorter<GenericInteraction>(InteractableKind.Portal, DefaultConverter, PortalSelector, GenericActiveChecker),
                         new DefaultSorter<GenericInteraction>(InteractableKind.Special, DefaultConverter, DefaultSelector, GenericActiveChecker)
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private ITrackedObjectScanner CreatePurchaseInteractionScanner()
@@ -361,7 +365,7 @@ namespace MiniMapMod
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Portal, DefaultConverter, GoldShoresSelector, InteractionActiveChecker),
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Totem, DefaultConverter, GoldShoresBeaconSelector, GoldShoresSelector),
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private void CreateStaticScanners()
@@ -393,6 +397,8 @@ namespace MiniMapMod
                     dynamic: false,
                     scanner: new MonoBehaviorScanner<T>(logger),
                     range: TrackedDimensions,
+                    spriteManager: SpriteManager,
+                    playerHeightRetriever: () => GetPlayerPosition().y,
                     converter: converter ?? DefaultConverter,
                     activeChecker: activeChecker ?? DefaultActiveChecker,
                     selector: selector
@@ -462,7 +468,22 @@ namespace MiniMapMod
                         new DefaultSorter<TeamComponent>(InteractableKind.Player, DefaultConverter, PlayerSelector, x => true),
                         new DefaultSorter<TeamComponent>(InteractableKind.Neutral, DefaultConverter, NeutralSelector, x => x?.gameObject.activeSelf ?? true),
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
+        }
+
+        private Vector3 GetPlayerPosition()
+        {
+            if (cameraRig == null)
+            {
+                cameraRig = Camera.main.transform.parent.GetComponent<CameraRigController>();
+
+                if (cameraRig == null)
+                {
+                    logger.LogError("Failed to retrieve camera rig in scene to retrieve camera position");
+                }
+            }
+
+            return cameraRig.target?.transform?.position ?? Camera.main.transform.position;
         }
 
         private void CreateDynamicScanners()
@@ -475,6 +496,8 @@ namespace MiniMapMod
                     dynamic: true,
                     scanner: new MonoBehaviorScanner<GenericPickupController>(logger),
                     range: TrackedDimensions,
+                    spriteManager: SpriteManager,
+                    playerHeightRetriever: () => GetPlayerPosition().y,
                     converter: x => x.gameObject,
                     activeChecker: x => true
                 ),
