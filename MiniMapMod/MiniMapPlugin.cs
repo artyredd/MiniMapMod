@@ -154,7 +154,7 @@ namespace MiniMapMod
         private void UpdateIconPositions()
         {
             // only perform this calculation once per frame
-            Vector2 cameraPositionMinimap = Camera.main.transform.position.ToMinimapPosition(TrackedDimensions);
+            Vector2 cameraPositionMinimap = GetPlayerPosition().ToMinimapPosition(TrackedDimensions);
 
             for (int i = 0; i < TrackedObjects.Count; i++)
             {
