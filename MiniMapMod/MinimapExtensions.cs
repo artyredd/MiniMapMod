@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
+#nullable enable
 namespace MiniMapMod
 {
     public static class MinimapExtensions
@@ -30,6 +31,19 @@ namespace MiniMapMod
             z /= dimensions.Z.Difference;
 
             return new(x * Settings.MinimapSize.Width, z * Settings.MinimapSize.Height);
+        }
+
+        /// <summary>
+        /// Checks the given expression, if it returns true, value passed in is returned allowing chaining of check
+        /// other wise returns null, use with colaescing operators to short circuit
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public static T? Check<T>(this T value, Func<T, bool> expression) where T : class
+        {
+            return expression?.Invoke(value) is null or false ?  (T?)null : value;
         }
     }
 }

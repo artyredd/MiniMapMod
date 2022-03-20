@@ -76,6 +76,10 @@ Huge thanks to these awesome people who assisted in creating awesome features fo
 [Arcafanetiz](https://github.com/Arcafanetiz)
 
 ### Change Log
+Minor 3.1.1
+- equipment drones no longer show up as equipment
+- fixed stack trace logging to be more meaningful
+
 Major 3.3
 - performance major, limited min time between scans to 2 seconds, previous was unlimited, when in 2hr+ runs auto-enemy killing builds caused constant scene scanning
 - fixed bug where chosing wrong icon path in config would lag and crash game with MissingTextureExceptions thrown by `SpriteManager.GetOrCache`

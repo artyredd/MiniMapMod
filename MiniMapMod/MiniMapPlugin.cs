@@ -12,7 +12,7 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.1")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private ISpriteManager SpriteManager;
@@ -341,7 +341,7 @@ namespace MiniMapMod
 
             bool ShopSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TERMINAL") ?? false;
 
-            bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIP") ?? false;
+            bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIPMENTBARREL") ?? false;
 
             bool GoldShoresSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("GOLDSHORE") ?? false;
 

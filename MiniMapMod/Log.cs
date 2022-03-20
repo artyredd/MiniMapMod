@@ -24,14 +24,14 @@ namespace MiniMapMod
         {
             LogError(message);
 
-            LogError($"\t{head?.StackTrace ?? "no stack trace available"}");
-
             // log the exception linked list's messages
             // this is only really used for weird event and async method
             // behaviour, most of the time this is unnessesary
             while (head != null)
             {
                 LogError($"\t{head.Message}");
+
+                LogError($"\t{head.StackTrace}");
 
                 if (head.InnerException != null)
                 {
