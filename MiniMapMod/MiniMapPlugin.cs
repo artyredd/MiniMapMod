@@ -12,7 +12,7 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.0")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.1")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private ISpriteManager SpriteManager;
@@ -36,6 +36,7 @@ namespace MiniMapMod
 
         private readonly Timer dynamicScanTimer = new(5.0f);
         private readonly Timer cooldownTimer = new(2.0f, false) { Value = -1.0f };
+        private CameraRigController cameraRig;
 
         public void Awake()
         {
@@ -88,7 +89,7 @@ namespace MiniMapMod
         //The Update() method is run on every frame of the game.
         private void Update()
         {
-            if (UnityEngine.Input.GetKeyDown(KeyCode.M))
+            if (UnityEngine.Input.GetKeyDown(Settings.MinimapKey))
             {
                 Enable = !Enable;
 
@@ -120,6 +121,15 @@ namespace MiniMapMod
                         Minimap.SetRotation(Camera.main.transform.rotation);
 
                         UpdateIconPositions();
+
+                        if (Input.GetKeyDown(Settings.MinimapIncreaseScaleKey))
+                        {
+                            Minimap.Container.transform.localScale *= 1.1f;
+                        }else 
+                        if (Input.GetKeyDown(Settings.MinimapDecreaseScaleKey))
+                        {
+                            Minimap.Container.transform.localScale *= 0.90f;
+                        }
                     }
                     catch (NullReferenceException)
                     {
@@ -187,6 +197,7 @@ namespace MiniMapMod
                 }
 
                 // check to see if its active and whether to change its color
+                // check the position to see if we should show arrow
                 item.CheckActive();
             }
         }
@@ -204,6 +215,8 @@ namespace MiniMapMod
             logger.LogInfo("Creating Minimap object");
 
             Minimap.CreateMinimap(this.SpriteManager, objectivePanel.gameObject);
+
+            Minimap.Container.transform.localScale = Vector3.one * Settings.MinimapScale;
 
             logger.LogInfo("Finished creating Minimap");
 
@@ -226,10 +239,17 @@ namespace MiniMapMod
 
             // mark the scene as scannable again so we scan for chests etc..
             ScannedStaticObjects = false;
+
+            cameraRig = null;
         }
 
         private void ScanScene()
         {
+            // don't scan if the minimap isn't enabled
+            if (Enable == false)
+            {
+                return;
+            }
             // when other mods hook into the various global events
             // and this method throws exceptions, the entire event will throw and fail to invoke their methods
             // as a result, this method should never throw an exception and should output meaningful
@@ -311,7 +331,7 @@ namespace MiniMapMod
                         new DefaultSorter<ChestBehavior>(InteractableKind.Chest, x => x.gameObject, ChestSelector, activeChecker),
                         new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod,  x => x.gameObject, LunarPodSelector, activeChecker),
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private ITrackedObjectScanner CreateGenericInteractionScanner()
@@ -330,7 +350,7 @@ namespace MiniMapMod
                         new DefaultSorter<GenericInteraction>(InteractableKind.Portal, DefaultConverter, PortalSelector, GenericActiveChecker),
                         new DefaultSorter<GenericInteraction>(InteractableKind.Special, DefaultConverter, DefaultSelector, GenericActiveChecker)
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private ITrackedObjectScanner CreatePurchaseInteractionScanner()
@@ -341,7 +361,7 @@ namespace MiniMapMod
 
             bool ShopSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TERMINAL") ?? false;
 
-            bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIP") ?? false;
+            bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIPMENTBARREL") ?? false;
 
             bool GoldShoresSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("GOLDSHORE") ?? false;
 
@@ -361,7 +381,7 @@ namespace MiniMapMod
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Portal, DefaultConverter, GoldShoresSelector, InteractionActiveChecker),
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Totem, DefaultConverter, GoldShoresBeaconSelector, GoldShoresSelector),
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private void CreateStaticScanners()
@@ -393,6 +413,8 @@ namespace MiniMapMod
                     dynamic: false,
                     scanner: new MonoBehaviorScanner<T>(logger),
                     range: TrackedDimensions,
+                    spriteManager: SpriteManager,
+                    playerHeightRetriever: () => GetPlayerPosition().y,
                     converter: converter ?? DefaultConverter,
                     activeChecker: activeChecker ?? DefaultActiveChecker,
                     selector: selector
@@ -462,7 +484,22 @@ namespace MiniMapMod
                         new DefaultSorter<TeamComponent>(InteractableKind.Player, DefaultConverter, PlayerSelector, x => true),
                         new DefaultSorter<TeamComponent>(InteractableKind.Neutral, DefaultConverter, NeutralSelector, x => x?.gameObject.activeSelf ?? true),
                     }
-                ), TrackedDimensions);
+                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
+        }
+
+        private Vector3 GetPlayerPosition()
+        {
+            if (cameraRig == null)
+            {
+                cameraRig = Camera.main.transform.parent.GetComponent<CameraRigController>();
+
+                if (cameraRig == null)
+                {
+                    logger.LogError("Failed to retrieve camera rig in scene to retrieve camera position");
+                }
+            }
+
+            return cameraRig.target?.transform?.position ?? Camera.main.transform.position;
         }
 
         private void CreateDynamicScanners()
@@ -475,6 +512,8 @@ namespace MiniMapMod
                     dynamic: true,
                     scanner: new MonoBehaviorScanner<GenericPickupController>(logger),
                     range: TrackedDimensions,
+                    spriteManager: SpriteManager,
+                    playerHeightRetriever: () => GetPlayerPosition().y,
                     converter: x => x.gameObject,
                     activeChecker: x => true
                 ),

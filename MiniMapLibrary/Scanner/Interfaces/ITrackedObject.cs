@@ -12,6 +12,7 @@ namespace MiniMapLibrary.Scanner
         InteractableKind InteractableType { get; set; }
         RectTransform MinimapTransform { get; set; }
         bool DynamicObject { get; set; }
+        bool Active { get; }
 
         void CheckActive();
         void Destroy();

@@ -15,13 +15,15 @@ namespace MiniMapLibrary.Scanner
         private readonly Func<T, bool> selector;
         private readonly InteractableKind kind;
         private readonly Range3D range;
+        private readonly ISpriteManager spriteManager;
+        private readonly Func<float> playerHeightRetriver;
 
-        public SingleKindScanner(InteractableKind kind, bool dynamic, IScanner<T> scanner, Range3D range, Func<T, GameObject> converter, Func<T, bool>? activeChecker = null, Func<T, bool>? selector = null)
+        public SingleKindScanner(InteractableKind kind, bool dynamic, IScanner<T> scanner, Range3D range, ISpriteManager spriteManager, Func<float> playerHeightRetriever, Func <T, GameObject> converter, Func<T, bool>? activeChecker = null, Func<T, bool>? selector = null)
         {
-            this.scanner = scanner;
+            this.scanner = scanner ?? throw new ArgumentNullException(nameof(scanner));
             this.dynamic = dynamic;
             this.kind = kind;
-            this.converter = converter;
+            this.converter = converter ?? throw new ArgumentNullException(nameof(converter));
 
             // always return active if nothing is given
             this.activeChecker = activeChecker ?? ((x) => true);
@@ -29,7 +31,9 @@ namespace MiniMapLibrary.Scanner
             // always select if nothing is given
             this.selector = selector ?? ((x) => true);
 
-            this.range = range;
+            this.range = range ?? throw new ArgumentNullException(nameof(range));
+            this.spriteManager = spriteManager ?? throw new ArgumentNullException(nameof(spriteManager));
+            this.playerHeightRetriver = playerHeightRetriever;
         }
 
         public void ScanScene(IList<ITrackedObject> list)
@@ -42,12 +46,12 @@ namespace MiniMapLibrary.Scanner
                 {
                     GameObject gameObject = converter(item);
 
-                    list.Add(new TrackedObject<T>(kind, converter(item), null)
+                    list.Add(new ElevationTrackedObject(new TrackedObject<T>(kind, converter(item), null)
                     {
                         BackingObject = item,
                         ActiveChecker = activeChecker,
                         DynamicObject = dynamic
-                    });
+                    }, spriteManager, playerHeightRetriver));
 
                     range.CheckValue(gameObject.transform.position);
                 }

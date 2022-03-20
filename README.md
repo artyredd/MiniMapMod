@@ -25,10 +25,13 @@ Adds a contemporary Minimap to the game.
 | Enemies | ✔ | ✔ |
 | Void Enemies | ✔ | ✔ |
 | Lunar Enemies | ✔ | ✔ |
+| Neutral Objects/NPCs | ✔ | ✔ |
 | Players | ✔ | ✔ |
 | Drones (broken) | ✔ | ✔ |
 | Allies (drones) | ✔ | ✔ |
 | Fans/Special | ✔ | ✔ |
+| Portals | ✔ | ✔ |
+| Totems | ✔ | ✔ |
 | Dropped Items | ✔ | ✔ |
 | Newt Altar | ❌ | ❌ |
 | Timed Chests | ❌ | ❌ |
@@ -58,6 +61,11 @@ BepInEx Config. Each icon is individually configurable.
 - Inactive Color
 - Icon Width
 - Icon Height
+- Elevation Marker Enabled / Disabled
+- Elevation Marker Color
+- Elevation Marker Width
+- Elevation Marker Height
+- Elevation Marker Offset
 
 ### Upcoming Changes
 None - Final Release
@@ -76,6 +84,15 @@ Huge thanks to these awesome people who assisted in creating awesome features fo
 [Arcafanetiz](https://github.com/Arcafanetiz)
 
 ### Change Log
+Minor 3.1.1
+- equipment drones no longer show up as equipment
+- fixed stack trace logging to be more meaningful
+- added elevation markers for all icons denoting where they are located vertically from player
+- added long over due zoom feature
+- added minimap key to config
+- added zoom keys to config
+- added minimap scale to config to save zoom level between sessions
+
 Major 3.3
 - performance major, limited min time between scans to 2 seconds, previous was unlimited, when in 2hr+ runs auto-enemy killing builds caused constant scene scanning
 - fixed bug where chosing wrong icon path in config would lag and crash game with MissingTextureExceptions thrown by `SpriteManager.GetOrCache`

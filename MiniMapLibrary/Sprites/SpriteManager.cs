@@ -41,7 +41,7 @@ namespace MiniMapLibrary
             throw new MissingComponentException($"MissingTextureException: Interactible.{type} does not have a registered texture path to load.");
         }
 
-        private Sprite? GetOrCache(string Path)
+        public Sprite? GetOrCache(string Path)
         {
             if (SpriteCache.ContainsKey(Path))
             {
