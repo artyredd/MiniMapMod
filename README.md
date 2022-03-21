@@ -84,6 +84,9 @@ Huge thanks to these awesome people who assisted in creating awesome features fo
 [Arcafanetiz](https://github.com/Arcafanetiz)
 
 ### Change Log
+Hotfix 3.1.2
+- fixed error that ignored icon's enabled options in config
+
 Minor 3.1.1
 - equipment drones no longer show up as equipment
 - fixed stack trace logging to be more meaningful

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using MiniMapLibrary;
 
 #nullable enable
 namespace MiniMapLibrary.Scanner
@@ -13,6 +14,7 @@ namespace MiniMapLibrary.Scanner
         private readonly Func<T, bool>? selector;
         private readonly Func<T, GameObject> converter;
         private readonly Func<T, bool>? activeChecker;
+        private readonly bool enabled;
 
         public DefaultSorter(InteractableKind kind, 
             Func<T, GameObject> converter, 
@@ -23,9 +25,10 @@ namespace MiniMapLibrary.Scanner
             this.selector = selector;
             this.converter = converter;
             this.activeChecker = activeChecker;
+            this.enabled = Settings.GetSetting(kind).Config.Enabled.Value;
         }
 
-        public bool IsKind(T value) => selector?.Invoke(value) ?? false;
+        public bool IsKind(T value) => enabled && (selector?.Invoke(value) ?? false);
 
         public GameObject GetGameObject(T value) => converter(value);
 

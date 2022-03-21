@@ -17,6 +17,7 @@ namespace MiniMapLibrary.Scanner
         private readonly Range3D range;
         private readonly ISpriteManager spriteManager;
         private readonly Func<float> playerHeightRetriver;
+        private readonly bool enabled;
 
         public SingleKindScanner(InteractableKind kind, bool dynamic, IScanner<T> scanner, Range3D range, ISpriteManager spriteManager, Func<float> playerHeightRetriever, Func <T, GameObject> converter, Func<T, bool>? activeChecker = null, Func<T, bool>? selector = null)
         {
@@ -34,10 +35,17 @@ namespace MiniMapLibrary.Scanner
             this.range = range ?? throw new ArgumentNullException(nameof(range));
             this.spriteManager = spriteManager ?? throw new ArgumentNullException(nameof(spriteManager));
             this.playerHeightRetriver = playerHeightRetriever;
+            enabled = Settings.GetSetting(kind).Config.Enabled.Value;
         }
 
         public void ScanScene(IList<ITrackedObject> list)
         {
+            // if the kind is disabled, don't bother scanning
+            if (enabled is false)
+            {
+                return;
+            }
+
             IEnumerable<T> foundObjects = scanner.Scan();
 
             foreach (var item in foundObjects)

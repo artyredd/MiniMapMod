@@ -12,7 +12,7 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.1")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.2")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private ISpriteManager SpriteManager;
