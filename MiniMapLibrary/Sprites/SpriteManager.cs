@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using RoR2;
 
 #nullable enable
 namespace MiniMapLibrary
@@ -48,7 +49,7 @@ namespace MiniMapLibrary
                 return SpriteCache[Path];
             }
 
-            Sprite? loaded = Resources.Load<Sprite>(Path);
+            Sprite? loaded = RoR2.LegacyResourcesAPI.Load<Sprite>(Path);
 
             if (loaded != null)
             {
@@ -56,7 +57,7 @@ namespace MiniMapLibrary
             }
             else 
             {
-                loaded = Resources.Load<Sprite>(Settings.Icons.Default);
+                loaded = RoR2.LegacyResourcesAPI.Load<Sprite>(Settings.Icons.Default);
 
                 if (loaded is null)
                 {

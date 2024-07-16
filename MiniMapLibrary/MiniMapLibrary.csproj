@@ -17,6 +17,9 @@
 		<Reference Include="UnityEngine.UIModule">
 		  <HintPath>..\MiniMapMod\libs\UnityEngine.UIModule.dll</HintPath>
 		</Reference>
+		<Reference Include="LegacyResourcesAPI">
+		  <HintPath>..\MiniMapMod\libs\LegacyResourcesAPI.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>
