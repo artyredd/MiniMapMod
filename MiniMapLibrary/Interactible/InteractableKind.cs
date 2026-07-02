@@ -18,17 +18,18 @@ namespace MiniMapLibrary
         Printer = 1 << 6,
         LunarPod = 1 << 7,
         Shop = 1 << 8,
-        Equipment =  1 << 9,
+        Equipment = 1 << 9,
         Teleporter = 1 << 10,
         EnemyMonster = 1 << 11,
         EnemyLunar = 1 << 12,
         EnemyVoid = 1 << 13,
         Minion = 1 << 14,
         Player = 1 << 15,
-        Item =  1 << 16,
+        Item = 1 << 16,
         Portal = 1 << 17,
         Totem = 1 << 18,
         Neutral = 1 << 19,
+        NewtAltar = 1 << 20,
         All = int.MaxValue
     }
 }

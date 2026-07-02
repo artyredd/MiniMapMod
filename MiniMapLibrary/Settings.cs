@@ -8,7 +8,8 @@ using UnityEngine;
 
 namespace MiniMapLibrary
 {
-    public enum LogLevel { 
+    public enum LogLevel
+    {
         none,
         info,
         debug,
@@ -36,11 +37,12 @@ namespace MiniMapLibrary
             public const string Arrow = "Textures/MiscIcons/texOptionsArrowLeft";
             public const string Pencil = "Textures/MiscIcons/texEditIcon";
             public const string Portal = "Textures/MiscIcons/texQuickplay";
+            public const string Lunar = "Textures/ItemIcons/BG/texLunarBGIcon";
         }
 
         public static class Colors
         {
-            public static Color Yellow = new Color(255/255.0f, 219 / 255.0f, 88 / 255.0f);
+            public static Color Yellow = new Color(255 / 255.0f, 219 / 255.0f, 88 / 255.0f);
             public static Color Purple = new Color(122 / 255.0f, 105 / 255.0f, 244 / 255.0f);
             public static Color DarkPurple = new Color(76 / 255.0f, 53 / 255.0f, 244 / 255.0f);
             public static Color Teal = new Color(94 / 255.0f, 178 / 255.0f, 242 / 255.0f);
@@ -93,11 +95,11 @@ namespace MiniMapLibrary
 
         private static void InitializeDefaultSettings()
         {
-            static void Add(InteractableKind type, 
-                float width = -1, 
-                float height = -1, 
-                Color activeColor = default, 
-                Color inactiveColor = default, 
+            static void Add(InteractableKind type,
+                float width = -1,
+                float height = -1,
+                Color activeColor = default,
+                Color inactiveColor = default,
                 string description = "",
                 string path = Icons.Default,
                 Color elevationMarkerColor = default
@@ -128,7 +130,7 @@ namespace MiniMapLibrary
                 setting.ElevationMarkerEnabled = true;
                 setting.ElevationMarkerDimensions = new Dimension2D(DefaultElevationSize.Width, DefaultElevationSize.Height);
                 setting.ElevationMarkerOffset = new Dimension2D(
-                    (size.Width / 2.0f) + (DefaultElevationSize.Width / 2.0f), 
+                    (size.Width / 2.0f) + (DefaultElevationSize.Width / 2.0f),
                     (size.Height / 2.0f) + (DefaultElevationSize.Height / 2.0f)
                 );
 
@@ -166,7 +168,11 @@ namespace MiniMapLibrary
             Add(InteractableKind.Shrine,
                 description: "All shrines (excluding Newt)",
                 path: Icons.Shrine);
-           
+
+            Add(InteractableKind.NewtAltar,
+                description: "Newt Altar",
+                path: Icons.Lunar);
+
             Add(InteractableKind.Teleporter, 15, 15,
                 activeColor: Color.white,
                 inactiveColor: Color.green,
@@ -279,15 +285,15 @@ namespace MiniMapLibrary
             return DefaultUIElementSize;
         }
 
-        public static void LoadApplicationSettings(ILogger logger, IConfig config) 
+        public static void LoadApplicationSettings(ILogger logger, IConfig config)
         {
             Settings.logger = logger;
             _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
             _MinimapDecreaseScaleKey = config.Bind<KeyCode>($"Settings.Zoom", "UnZoomKey", KeyCode.Minus, "Zooms the minimap OUT");
             _MinimapIncreaseScaleKey = config.Bind<KeyCode>($"Settings.Zoom", "ZoomKey", KeyCode.Equals, "Zooms the minimap IN");
-            _MiniMapKey  = config.Bind<KeyCode>($"Settings.General", "EnableKey", KeyCode.M, "Key that enables or disabled the minimap");
+            _MiniMapKey = config.Bind<KeyCode>($"Settings.General", "EnableKey", KeyCode.M, "Key that enables or disabled the minimap");
             _minimapScale = config.Bind<float>($"Settings.Zoom", "zoomLevel", 1.0f, "How far the minimap should be zoomed in");
-            
+
             logger.LogDebug($"Loaded log level: {Settings.LogLevel} Minimap[Key: {MinimapKey}] Zoom[{Settings.MinimapScale * 100}% UnZoomKey:{MinimapDecreaseScaleKey} ZoomKey:{MinimapIncreaseScaleKey}]");
         }
 
@@ -319,11 +325,11 @@ namespace MiniMapLibrary
             IConfigEntry<Vector2> elevationOffset = config.Bind<Vector2>(sectionTitle, "elevationMarkerOffset", new Vector2(setting.ElevationMarkerOffset.Width, setting.ElevationMarkerOffset.Height), "The value of the x and y of the elevation marker's position relative to the main icon's center");
 
             setting.Config = new SettingConfigGroup(
-                enabled, 
-                height, 
-                width, 
-                activeColor, 
-                inactiveColor, 
+                enabled,
+                height,
+                width,
+                activeColor,
+                inactiveColor,
                 path,
                 elevationEnabled,
                 elevationOffset,

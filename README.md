@@ -33,7 +33,7 @@ Adds a contemporary Minimap to the game.
 | Portals | ✔ | ✔ |
 | Totems | ✔ | ✔ |
 | Dropped Items | ✔ | ✔ |
-| Newt Altar | ❌ | ❌ |
+| Newt Altar | ✔ | ✔ |
 | Timed Chests | ❌ | ❌ |
 | Stealth Chests | ❌ | ❌ |
 
@@ -70,12 +70,6 @@ BepInEx Config. Each icon is individually configurable.
 ### Upcoming Changes
 None - Final Release
 
-### If you like my Mod please consider donating to the Autism Research Institute 
-https://www.autism.org/donate-autism-research-institute/
-
-### If you REALLY like my code I am looking for work
-Contact me for my resume
-
 ### Bug Reports
 If you have an issue, discover a bug, or have a recommendation please file an issue on my github page.
 
@@ -84,6 +78,9 @@ Huge thanks to these awesome people who assisted in creating awesome features fo
 [Arcafanetiz](https://github.com/Arcafanetiz)
 
 ### Change Log
+Release 4.0.0
+- Finally added newt altars to the search, since everyone has been begging for it for literally years
+
 Hotfix 3.1.2
 - fixed error that ignored icon's enabled options in config
 

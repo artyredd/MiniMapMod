@@ -12,7 +12,7 @@ using MiniMapLibrary.Scanner;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "3.3.2")]
+    [BepInPlugin("MiniMap", "Mini Map Mod", "4.0.0")]
     public class MiniMapPlugin : BaseUnityPlugin
     {
         private ISpriteManager SpriteManager;
@@ -125,11 +125,12 @@ namespace MiniMapMod
                         if (Input.GetKeyDown(Settings.MinimapIncreaseScaleKey))
                         {
                             Minimap.Container.transform.localScale *= 1.1f;
-                        }else 
-                        if (Input.GetKeyDown(Settings.MinimapDecreaseScaleKey))
-                        {
-                            Minimap.Container.transform.localScale *= 0.90f;
                         }
+                        else
+                            if (Input.GetKeyDown(Settings.MinimapDecreaseScaleKey))
+                            {
+                                Minimap.Container.transform.localScale *= 0.90f;
+                            }
                     }
                     catch (NullReferenceException)
                     {
@@ -259,7 +260,8 @@ namespace MiniMapMod
                 if (cooldownTimer.Started is false)
                 {
                     cooldownTimer.Start();
-                }else if (cooldownTimer.Expired is false)
+                }
+                else if (cooldownTimer.Expired is false)
                 {
                     return;
                 }
@@ -369,6 +371,8 @@ namespace MiniMapMod
 
             bool InteractionActiveChecker(PurchaseInteraction interaction) => interaction?.available ?? true;
 
+            bool LunarShopSelector(PurchaseInteraction interaction) => interaction?.GetComponent<PortalStatueBehavior>()?.portalType == PortalStatueBehavior.PortalType.Shop;
+
             GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
 
             return new MultiKindScanner<PurchaseInteraction>(false,
@@ -380,15 +384,16 @@ namespace MiniMapMod
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Equipment, DefaultConverter, EquipmentSelector, InteractionActiveChecker),
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Portal, DefaultConverter, GoldShoresSelector, InteractionActiveChecker),
                         new DefaultSorter<PurchaseInteraction>(InteractableKind.Totem, DefaultConverter, GoldShoresBeaconSelector, GoldShoresSelector),
+                        new DefaultSorter<PurchaseInteraction>(InteractableKind.NewtAltar, DefaultConverter, LunarShopSelector, InteractionActiveChecker)
                     }
                 ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
         private void CreateStaticScanners()
         {
-            GameObject DefaultConverter<T>(T value) where T: MonoBehaviour => value?.gameObject;
+            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
 
-            bool DefaultActiveChecker<T>(T value) where T: MonoBehaviour
+            bool DefaultActiveChecker<T>(T value) where T : MonoBehaviour
             {
                 if (value is PurchaseInteraction isInteraction)
                 {
@@ -397,7 +402,7 @@ namespace MiniMapMod
 
                 PurchaseInteraction interaction = value?.GetComponent<PurchaseInteraction>();
 
-                if (interaction != null) 
+                if (interaction != null)
                 {
                     return interaction.available;
                 }
@@ -406,7 +411,7 @@ namespace MiniMapMod
                 return true;
             }
 
-            ITrackedObjectScanner SimpleScanner<T>(InteractableKind kind, Func<T, bool> activeChecker = null, Func<T, bool> selector = null, Func<T, GameObject> converter = null) where T: MonoBehaviour
+            ITrackedObjectScanner SimpleScanner<T>(InteractableKind kind, Func<T, bool> activeChecker = null, Func<T, bool> selector = null, Func<T, GameObject> converter = null) where T : MonoBehaviour
             {
                 return new SingleKindScanner<T>(
                     kind: kind,

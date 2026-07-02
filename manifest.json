@@ -1,8 +1,8 @@
 ﻿{
   "name": "MiniMapMod",
-  "version_number": "3.3.2",
-  "website_url": "https://github.com/DekuDesu",
-  "description": "Adds a MiniMap to your game v3.3",
+  "version_number": "4.0.0",
+  "website_url": "https://github.com/ArtyRedd",
+  "description": "Adds a MiniMap to your game v4",
   "dependencies": [
     "bbepis-BepInExPack-5.4.9",
     "RiskofThunder-HookGenPatcher-1.2.1"
