@@ -1,10 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
-#nullable enable
 namespace MiniMapLibrary.Scanner
 {
     public class TagScanner : IScanner<GameObject>
@@ -12,28 +9,18 @@ namespace MiniMapLibrary.Scanner
         private readonly string targetTag;
         private readonly ILogger logger;
 
-        public TagScanner(InteractableKind kind, bool dynamic, string tag, ILogger logger, Func<GameObject, bool>? selector = null, Func<GameObject, bool>? activeChecker = null)
+        public TagScanner(InteractableKind kind, bool dynamic, string tag, ILogger logger,
+            Func<GameObject, bool> selector = null, Func<GameObject, bool> activeChecker = null)
         {
-            this.targetTag = tag;
-            this.logger = logger;
-
-            logger.LogDebug($"Created {nameof(TagScanner)} for tag {tag}");
+            targetTag = tag ?? throw new ArgumentNullException(nameof(tag));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public IEnumerable<GameObject> Scan()
         {
-            IEnumerable<GameObject>? found = GameObject.FindGameObjectsWithTag(targetTag);
-
-            if (found is null)
-            {
-                logger.LogDebug($"Failed to find any objects with tag {targetTag}");
-            }
-            else
-            {
-                logger.LogDebug($"Found {found.Count()} objects with tag {targetTag}");
-            }
-
-            return found ?? new List<GameObject>();
+            GameObject[] objects = GameObject.FindGameObjectsWithTag(targetTag);
+            logger.LogDebug($"Found {objects.Length} objects tagged {targetTag}.");
+            return objects;
         }
     }
 }

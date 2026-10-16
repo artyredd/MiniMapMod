@@ -14,7 +14,6 @@ namespace MiniMapLibrary.Scanner
         private readonly Func<T, bool>? selector;
         private readonly Func<T, GameObject> converter;
         private readonly Func<T, bool>? activeChecker;
-        private readonly bool enabled;
 
         public DefaultSorter(InteractableKind kind, 
             Func<T, GameObject> converter, 
@@ -23,12 +22,15 @@ namespace MiniMapLibrary.Scanner
         {
             Kind = kind;
             this.selector = selector;
-            this.converter = converter;
+            this.converter = converter ?? throw new ArgumentNullException(nameof(converter));
             this.activeChecker = activeChecker;
-            this.enabled = Settings.GetSetting(kind).Config.Enabled.Value;
         }
 
-        public bool IsKind(T value) => enabled && (selector?.Invoke(value) ?? false);
+        public bool IsKind(T value)
+        {
+            InteractibleSetting setting = Settings.GetSetting(Kind);
+            return (setting.Config?.Enabled.Value ?? setting.Enabled) && (selector?.Invoke(value) ?? true);
+        }
 
         public GameObject GetGameObject(T value) => converter(value);
 

@@ -13,7 +13,7 @@ namespace MiniMapMod.Adapters
 
         public ConfigAdapter(ConfigFile plugin)
         {
-            this.plugin = plugin;
+            this.plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         }
 
         public IConfigEntry<T> Bind<T>(string section, string key, T defaultValue, string description) => new ConfigEntryAdapter<T>(plugin.Bind<T>(section, key, defaultValue, description));

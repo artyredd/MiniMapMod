@@ -1,572 +1,385 @@
-using BepInEx;
-using RoR2;
-using UnityEngine;
-using MiniMapLibrary;
-using System.Collections.Generic;
-using System.Linq;
 using System;
+using BepInEx;
 using BepInEx.Configuration;
+using MiniMapLibrary;
 using MiniMapMod.Adapters;
-using MiniMapLibrary.Config;
-using MiniMapLibrary.Scanner;
+using RoR2;
+using RoR2.UI;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace MiniMapMod
 {
-    [BepInPlugin("MiniMap", "Mini Map Mod", "4.0.0")]
+    [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
+    [DefaultExecutionOrder(1000)]
     public class MiniMapPlugin : BaseUnityPlugin
     {
-        private ISpriteManager SpriteManager;
+        public const string PluginGuid = "MiniMap";
+        public const string PluginName = "Mini Map Mod";
+        public const string PluginVersion = "4.2.0";
 
-        private readonly List<ITrackedObject> TrackedObjects = new();
-
-        private Minimap Minimap;
-
-        private readonly Range3D TrackedDimensions = new();
-
-        private bool Enable = true;
-
-        private bool ScannedStaticObjects = false;
-
-        private IConfig config;
-
+        private readonly SceneBounds bounds = new();
         private MiniMapLibrary.ILogger logger;
-
-        private ITrackedObjectScanner[] staticScanners;
-        private ITrackedObjectScanner[] dynamicScanners;
-
-        private readonly Timer dynamicScanTimer = new(5.0f);
-        private readonly Timer cooldownTimer = new(2.0f, false) { Value = -1.0f };
+        private SpriteManager sprites;
+        private Minimap minimap;
+        private SceneTracker tracker;
+        private MarkerRenderer renderer;
+        private Run currentRun;
+        private HUD hud;
         private CameraRigController cameraRig;
+        private SceneInfo sceneInfo;
+        private GameObject viewedObject;
+        private Transform viewedTransform;
+        private Vector3 viewerPosition;
+        private float zoom = 1f;
+        private float nextHudAttempt, nextInteractionScan, nextBodyScan, nextStateRefresh, nextSceneScan, nextErrorLog, nextDiagnostics;
+        private float nextLayoutCheck;
+        private float lastScale;
+        private string sceneChangeReason = "enable";
+        private bool initialized, subscribed, sceneDirty;
+        private volatile bool configurationDirty, zoomDirty;
+        private bool visible = true;
+        private int spriteRevision = -1;
+        private int sceneScansThisStage;
 
-        public void Awake()
+        private void Awake()
         {
-            // wrap the bepinex logger with an adapter so 
-            // we can pass it to the business layer
-            logger = new Log(base.Logger);
-
-            SpriteManager = new SpriteManager(logger);
-
-            // create the minimap controller
-            Minimap = new(logger);
-
-            // SETUP CONFIG
-
-            // wrap bepinex config so we can pass it to business layer
-            config = new ConfigAdapter(this.Config);
-
-            Settings.LoadApplicationSettings(logger, config);
-
-            // bind options
-            InteractableKind[] kinds = Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>().Where(x => x != InteractableKind.none && x != InteractableKind.All).ToArray();
-
-            foreach (var item in kinds)
-            {
-                Settings.LoadConfigEntries(item, config);
-            }
-
-            logger.LogInfo("Creating scene scan hooks");
-
-            // fill the scanner arrays
-            CreateStaticScanners();
-
-            CreateDynamicScanners();
-
-            // hook events so the minimaps updates
-            // scan scene should NEVER throw exceptions
-            // doing so prevents all other subscribing events to not fire (after the exception)
-
-            // this will re-scan the scene every time any npc, player dies
-            GlobalEventManager.onCharacterDeathGlobal += (x) => ScanScene();
-
-            // this will re-scan when the player uses anything like a chest
-            // or the landing pod
-            GlobalEventManager.OnInteractionsGlobal += (x, y, z) => ScanScene();
-
-            // update the minimap automatically every N seconds regardless of deaths etc
-            dynamicScanTimer.OnFinished += (x) => ScanScene();
-        }
-
-        //The Update() method is run on every frame of the game.
-        private void Update()
-        {
-            if (UnityEngine.Input.GetKeyDown(Settings.MinimapKey))
-            {
-                Enable = !Enable;
-
-                if (Enable == false)
-                {
-                    logger.LogInfo("Resetting minimap");
-                    Reset();
-                    return;
-                }
-            }
-
-            cooldownTimer.Update(Time.deltaTime);
-            dynamicScanTimer.Update(Time.deltaTime);
-
-            if (Enable)
-            {
-                // the main camera becomes null when the scene ends on death or quits
-                if (Camera.main == null)
-                {
-                    logger.LogDebug("Main camera was null, resetting minimap");
-                    Reset();
-                    return;
-                }
-
-                if (Minimap.Created)
-                {
-                    try
-                    {
-                        Minimap.SetRotation(Camera.main.transform.rotation);
-
-                        UpdateIconPositions();
-
-                        if (Input.GetKeyDown(Settings.MinimapIncreaseScaleKey))
-                        {
-                            Minimap.Container.transform.localScale *= 1.1f;
-                        }
-                        else
-                            if (Input.GetKeyDown(Settings.MinimapDecreaseScaleKey))
-                            {
-                                Minimap.Container.transform.localScale *= 0.90f;
-                            }
-                    }
-                    catch (NullReferenceException)
-                    {
-                        // we'll encounter null references when other mods or the game itself
-                        // destroys entities we are tracking at runtime
-                        logger.LogDebug($"{nameof(NullReferenceException)} was encountered while updating positions, reseting minimap");
-                        Reset();
-                    }
-                }
-                else
-                {
-                    if (TryCreateMinimap())
-                    {
-                        TrackedDimensions.Clear();
-
-                        ScanScene();
-                    }
-                }
-            }
-        }
-
-        private void UpdateIconPositions()
-        {
-            // only perform this calculation once per frame
-            Vector2 cameraPositionMinimap = GetPlayerPosition().ToMinimapPosition(TrackedDimensions);
-
-            for (int i = 0; i < TrackedObjects.Count; i++)
-            {
-                ITrackedObject item = TrackedObjects[i];
-
-                // if we dont have a reference to the gameobject any more, remove it and continue
-                if (item.gameObject == null)
-                {
-                    TrackedObjects.RemoveAt(i);
-
-                    // if we still have a icon for the now discarded item destroy it
-                    if (item.MinimapTransform != null)
-                    {
-                        GameObject.Destroy(item.MinimapTransform.gameObject);
-                    }
-
-                    continue;
-                }
-
-                // convert the world positions to minimap positions
-                // remember the minimap is calculated on a scale from 0d to 1d where 0d is the least most coord of any interactible and 1d is the largest coord of any interactible
-
-                Vector2 itemMinimapPosition = item.gameObject.transform.position.ToMinimapPosition(TrackedDimensions) - cameraPositionMinimap;
-
-                // there exists no icon when .MinimapTransform is null
-                if (item.MinimapTransform == null)
-                {
-                    // create one
-                    item.MinimapTransform = Minimap.CreateIcon(item.InteractableType, itemMinimapPosition, this.SpriteManager);
-                }
-                else
-                {
-                    // since it was already created update the position
-                    item.MinimapTransform.localPosition = itemMinimapPosition;
-
-                    // becuase we don't want the icons to spin WITH the minimap set their rotation
-                    // every frame so they're always facing right-side up
-                    // (they inherit their position from the minimap)
-                    item.MinimapTransform.rotation = Quaternion.identity;
-                }
-
-                // check to see if its active and whether to change its color
-                // check the position to see if we should show arrow
-                item.CheckActive();
-            }
-        }
-
-        private bool TryCreateMinimap()
-        {
-            GameObject objectivePanel = GameObject.Find("ObjectivePanel");
-
-            if (objectivePanel == null || this.SpriteManager == null)
-            {
-                Minimap.Destroy();
-                return false;
-            }
-
-            logger.LogInfo("Creating Minimap object");
-
-            Minimap.CreateMinimap(this.SpriteManager, objectivePanel.gameObject);
-
-            Minimap.Container.transform.localScale = Vector3.one * Settings.MinimapScale;
-
-            logger.LogInfo("Finished creating Minimap");
-
-            return true;
-        }
-
-        private void Reset()
-        {
-            logger.LogDebug($"Clearing {nameof(TrackedObjects)}");
-            TrackedObjects.Clear();
-
-            logger.LogDebug($"Clearing {nameof(TrackedDimensions)}");
-            TrackedDimensions.Clear();
-
-            logger.LogDebug($"Destroying {nameof(Minimap)}");
-            Minimap.Destroy();
-
-            dynamicScanTimer.Reset();
-            cooldownTimer.Reset();
-
-            // mark the scene as scannable again so we scan for chests etc..
-            ScannedStaticObjects = false;
-
-            cameraRig = null;
-        }
-
-        private void ScanScene()
-        {
-            // don't scan if the minimap isn't enabled
-            if (Enable == false)
-            {
+            if (Application.isBatchMode)
                 return;
-            }
-            // when other mods hook into the various global events
-            // and this method throws exceptions, the entire event will throw and fail to invoke their methods
-            // as a result, this method should never throw an exception and should output meaningful
-            // errors
+
+            logger = new Log(Logger);
             try
             {
-                if (cooldownTimer.Started is false)
+                var config = new ConfigAdapter(Config);
+                Settings.LoadApplicationSettings(logger, config);
+                Settings.LoadConfigEntries(config);
+
+                zoom = Settings.MinimapScale;
+                sprites = new SpriteManager(logger, asynchronous: true);
+                minimap = new Minimap(logger);
+                tracker = new SceneTracker(minimap, sprites, logger, () => viewerPosition.y);
+                renderer = new MarkerRenderer(minimap, sprites, tracker);
+                initialized = true;
+                logger.LogInfo($"MiniMap {PluginVersion} initialized.");
+                logger.LogDebug($"[scanner.init] interactables={Settings.InteractionScanInterval:F2}s bodies={Settings.BodyScanInterval:F2}s sceneFallback={Settings.SceneScanInterval:F2}s state={Settings.StateRefreshInterval:F2}s; worldRadius={Settings.WorldRadius} (0=automatic) zoom={zoom:F2}.");
+            }
+            catch (Exception exception)
+            {
+                logger.LogException(exception, "MiniMap could not initialize.");
+                enabled = false;
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (!initialized || subscribed)
+                return;
+            SceneManager.activeSceneChanged += OnActiveSceneChanged;
+            Stage.onStageStartGlobal += OnStageStarted;
+            Run.onRunDestroyGlobal += OnRunDestroyed;
+            Config.SettingChanged += OnConfigurationChanged;
+            subscribed = true;
+            sceneDirty = true;
+        }
+
+        private void OnDisable()
+        {
+            if (subscribed)
+            {
+                SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+                Stage.onStageStartGlobal -= OnStageStarted;
+                Run.onRunDestroyGlobal -= OnRunDestroyed;
+                Config.SettingChanged -= OnConfigurationChanged;
+                subscribed = false;
+            }
+            ResetScene();
+        }
+
+        private void OnDestroy()
+        {
+            OnDisable();
+            sprites?.Dispose();
+            sprites = null;
+            initialized = false;
+        }
+
+        // Only set flags here; an exception thrown inside a global event would hit other subscribers.
+        private void OnActiveSceneChanged(Scene previous, Scene current) { sceneDirty = true; sceneChangeReason = $"scene {previous.name} -> {current.name}"; }
+        private void OnStageStarted(Stage stage) { sceneDirty = true; sceneChangeReason = "stage start"; }
+        private void OnRunDestroyed(Run run) { sceneDirty = true; sceneChangeReason = "run destroyed"; }
+
+        private void OnConfigurationChanged(object sender, SettingChangedEventArgs args)
+        {
+            ConfigDefinition definition = args.ChangedSetting.Definition;
+            if (definition.Section == "Settings.Zoom" && definition.Key == "zoomLevel")
+                zoomDirty = true;
+            else
+                configurationDirty = true;
+        }
+
+        private void Update()
+        {
+            if (!initialized)
+                return;
+            float now = Time.unscaledTime;
+            try
+            {
+                if (sceneDirty || sceneInfo != SceneInfo.instance || currentRun != Run.instance)
                 {
-                    cooldownTimer.Start();
+                    ResetScene();
+                    sceneInfo = SceneInfo.instance;
+                    currentRun = Run.instance;
+                    sceneDirty = false;
+                    logger.LogDebug($"[scene] {sceneChangeReason}; active={SceneManager.GetActiveScene().name} run={(bool)Run.instance} sceneInfo={(bool)sceneInfo}. Tracking and UI cleared.");
                 }
-                else if (cooldownTimer.Expired is false)
+                if (configurationDirty)
                 {
+                    Settings.Refresh();
+                    tracker.Clear();
+                    renderer.Reset();
+                    minimap.Destroy();
+                    hud = null;
+                    nextHudAttempt = nextInteractionScan = nextBodyScan = nextStateRefresh = nextSceneScan = 0f;
+                    sceneScansThisStage = 0;
+                    configurationDirty = false;
+                    logger.LogDebug("[config] Refreshed existing settings and rebuilt marker state.");
+                }
+                if (zoomDirty)
+                {
+                    zoom = Settings.MinimapScale;
+                    zoomDirty = false;
+                }
+                if (!Run.instance)
                     return;
+
+                HandleInput();
+                if (!visible)
+                    return;
+
+                // Keep scanning even without a HUD so diagnostics can tell the two failures apart.
+                if (now >= nextHudAttempt)
+                    EnsureHud(now);
+                if (hud && cameraRig && cameraRig.sceneCam)
+                    UpdateViewer();
+                if (now >= nextSceneScan)
+                {
+                    tracker.RefreshSceneCandidates();
+                    sceneScansThisStage++;
+                    // Vanilla objects all register with the game, so the full search is only a
+                    // safety net: a few passes while the stage populates, then only if it ever
+                    // turned up something unregistered (typically from another mod).
+                    nextSceneScan = sceneScansThisStage < 3 || tracker.UnregisteredCandidates > 0
+                        ? now + Settings.SceneScanInterval : float.PositiveInfinity;
+                    nextInteractionScan = 0f;
                 }
-
-                cooldownTimer.Reset();
-                cooldownTimer.Start();
-
-                logger.LogDebug("Scanning Scene");
-
-                logger.LogDebug("Clearing dynamically tracked objects");
-                ClearDynamicTrackedObjects();
-
-                logger.LogDebug("Scanning static types");
-                ScanStaticTypes();
-
-                logger.LogDebug("Scanning dynamic types");
-                ScanDynamicTypes();
+                if (now >= nextInteractionScan)
+                {
+                    nextInteractionScan = now + Settings.InteractionScanInterval;
+                    tracker.RefreshInteractables();
+                    bounds.Refresh(sceneInfo, tracker, viewerPosition);
+                }
+                if (now >= nextBodyScan)
+                {
+                    nextBodyScan = now + Settings.BodyScanInterval;
+                    tracker.RefreshBodies(viewedObject);
+                    tracker.RefreshPickups();
+                }
+                if (now >= nextStateRefresh)
+                {
+                    nextStateRefresh = now + Settings.StateRefreshInterval;
+                    tracker.UpdateStates();
+                }
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                logger.LogException(e, $"Fatal exception within minimap");
-
-                // intentionally consume the error, again we never want to throw an exception in
-                // a global event delegate (unless we're the last event, but that is never garunteed)
+                HandleFailure(exception, now);
+            }
+            finally
+            {
+                if (Settings.DebugLogging && now >= nextDiagnostics)
+                {
+                    nextDiagnostics = now + 5f;
+                    ReportDiagnostics();
+                }
             }
         }
 
-        private ITrackedObjectScanner CreateChestScanner(Func<ChestBehavior, bool> activeChecker)
+        private void HandleInput()
         {
-            bool TryGetPurchaseToken<T>(T value, out string out_token) where T : MonoBehaviour
+            if (ChatBox.IsActive)
+                return;
+            if (Input.GetKeyDown(Settings.MinimapKey))
             {
-                var token = value?.GetComponent<PurchaseInteraction>()?.contextToken;
-
-                // mods that implement ChestBehaviour, may not also PurchaseInteraction
-                if (token is null)
-                {
-                    logger.LogDebug($"No {nameof(PurchaseInteraction)} component on {typeof(T).Name}. GameObject.name = {value.gameObject.name}");
-                }
-
-                out_token = token;
-
-                return token != null;
+                visible = !visible;
+                minimap.SetVisible(visible);
+                logger.LogDebug($"[visibility] visible={visible} key={Settings.MinimapKey}.");
+                if (visible)
+                    nextHudAttempt = nextInteractionScan = nextBodyScan = nextStateRefresh = 0f;
             }
+            if (!visible)
+                return;
 
-            // given any chest object this will retur true if it should be displayed as a chest
-            bool ChestSelector(ChestBehavior chest)
+            float nextZoom = zoom;
+            if (Input.GetKeyDown(Settings.MinimapIncreaseScaleKey))
+                nextZoom *= 1.1f;
+            else if (Input.GetKeyDown(Settings.MinimapDecreaseScaleKey))
+                nextZoom /= 1.1f;
+            nextZoom = Numeric.Clamp(nextZoom, 0.1f, 20f, 1f);
+            if (Math.Abs(nextZoom - zoom) > 0.00001f)
             {
-                if (TryGetPurchaseToken(chest, out string token))
-                {
-                    return token.Contains("CHEST") && token != "LUNAR_CHEST_CONTEXT" && token.Contains("STEALTH") == false;
-                }
-
-                return false;
+                zoom = nextZoom;
+                Settings.SetMinimapScale(zoom);
             }
-
-            bool LunarPodSelector(ChestBehavior chest)
-            {
-                if (TryGetPurchaseToken(chest, out string token))
-                {
-                    return token == "LUNAR_CHEST_CONTEXT";
-                }
-
-                return false;
-            }
-
-            return new MultiKindScanner<ChestBehavior>(false,
-                new MonoBehaviorScanner<ChestBehavior>(logger), new MonoBehaviourSorter<ChestBehavior>(
-                    new ISorter<ChestBehavior>[] {
-                        new DefaultSorter<ChestBehavior>(InteractableKind.Chest, x => x.gameObject, ChestSelector, activeChecker),
-                        new DefaultSorter<ChestBehavior>(InteractableKind.LunarPod,  x => x.gameObject, LunarPodSelector, activeChecker),
-                    }
-                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
         }
 
-        private ITrackedObjectScanner CreateGenericInteractionScanner()
+        private bool EnsureHud(float now)
         {
-            bool PortalSelector(GenericInteraction interaction) => interaction?.contextToken?.Contains("PORTAL") ?? false;
-
-            bool DefaultSelector(GenericInteraction interaction) => true;
-
-            bool GenericActiveChecker(GenericInteraction interaction) => interaction?.isActiveAndEnabled ?? true;
-
-            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
-
-            return new MultiKindScanner<GenericInteraction>(false,
-                new MonoBehaviorScanner<GenericInteraction>(logger), new MonoBehaviourSorter<GenericInteraction>(
-                    new ISorter<GenericInteraction>[] {
-                        new DefaultSorter<GenericInteraction>(InteractableKind.Portal, DefaultConverter, PortalSelector, GenericActiveChecker),
-                        new DefaultSorter<GenericInteraction>(InteractableKind.Special, DefaultConverter, DefaultSelector, GenericActiveChecker)
-                    }
-                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
-        }
-
-        private ITrackedObjectScanner CreatePurchaseInteractionScanner()
-        {
-            bool FanSelector(PurchaseInteraction interaction) => interaction?.contextToken == "FAN_CONTEXT";
-
-            bool PrinterSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("DUPLICATOR") ?? false;
-
-            bool ShopSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TERMINAL") ?? false;
-
-            bool EquipmentSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("EQUIPMENTBARREL") ?? false;
-
-            bool GoldShoresSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("GOLDSHORE") ?? false;
-
-            bool GoldShoresBeaconSelector(PurchaseInteraction interaction) => interaction?.contextToken?.Contains("TOTEM") ?? false;
-
-            bool InteractionActiveChecker(PurchaseInteraction interaction) => interaction?.available ?? true;
-
-            bool LunarShopSelector(PurchaseInteraction interaction) => interaction?.GetComponent<PortalStatueBehavior>()?.portalType == PortalStatueBehavior.PortalType.Shop;
-
-            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
-
-            return new MultiKindScanner<PurchaseInteraction>(false,
-                new MonoBehaviorScanner<PurchaseInteraction>(logger), new MonoBehaviourSorter<PurchaseInteraction>(
-                    new ISorter<PurchaseInteraction>[] {
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Printer, DefaultConverter, PrinterSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Special, DefaultConverter, FanSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Shop, DefaultConverter, ShopSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Equipment, DefaultConverter, EquipmentSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Portal, DefaultConverter, GoldShoresSelector, InteractionActiveChecker),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.Totem, DefaultConverter, GoldShoresBeaconSelector, GoldShoresSelector),
-                        new DefaultSorter<PurchaseInteraction>(InteractableKind.NewtAltar, DefaultConverter, LunarShopSelector, InteractionActiveChecker)
-                    }
-                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
-        }
-
-        private void CreateStaticScanners()
-        {
-            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
-
-            bool DefaultActiveChecker<T>(T value) where T : MonoBehaviour
+            if (hud && hud.isActiveAndEnabled && cameraRig && cameraRig == hud.cameraRigController && cameraRig.sceneCam && minimap.Created)
             {
-                if (value is PurchaseInteraction isInteraction)
+                if (now >= nextLayoutCheck)
                 {
-                    return isInteraction.available;
+                    nextLayoutCheck = now + 0.5f;
+                    GameObject nextParent = FindMapParent(out bool useLayout);
+                    if (nextParent && minimap.SetHudParent(nextParent, useLayout))
+                        logger.LogDebug($"[hud.layout] Adopted late run-info layout: parent={nextParent.name} objectiveLayout={useLayout}.");
                 }
-
-                PurchaseInteraction interaction = value?.GetComponent<PurchaseInteraction>();
-
-                if (interaction != null)
-                {
-                    return interaction.available;
-                }
-
-                // default always active;
                 return true;
             }
 
-            ITrackedObjectScanner SimpleScanner<T>(InteractableKind kind, Func<T, bool> activeChecker = null, Func<T, bool> selector = null, Func<T, GameObject> converter = null) where T : MonoBehaviour
+            tracker.DetachIcons();
+            minimap.Destroy();
+            hud = null;
+            cameraRig = null;
+            nextHudAttempt = now + 0.5f;
+            var huds = HUD.readOnlyInstanceList;
+            for (int i = 0; i < huds.Count; i++)
             {
-                return new SingleKindScanner<T>(
-                    kind: kind,
-                    dynamic: false,
-                    scanner: new MonoBehaviorScanner<T>(logger),
-                    range: TrackedDimensions,
-                    spriteManager: SpriteManager,
-                    playerHeightRetriever: () => GetPlayerPosition().y,
-                    converter: converter ?? DefaultConverter,
-                    activeChecker: activeChecker ?? DefaultActiveChecker,
-                    selector: selector
-                );
-            }
+                HUD candidate = huds[i];
+                if (!candidate || !candidate.isActiveAndEnabled || candidate.localUserViewer == null
+                    || !candidate.cameraRigController || !candidate.cameraRigController.sceneCam)
+                    continue;
 
-            staticScanners = new ITrackedObjectScanner[] {
-                CreateChestScanner(DefaultActiveChecker),
-                CreatePurchaseInteractionScanner(),
-                CreateGenericInteractionScanner(),
-                SimpleScanner<RouletteChestController>(InteractableKind.Chest),
-                SimpleScanner<ShrineBloodBehavior>(InteractableKind.Shrine),
-                SimpleScanner<ShrineChanceBehavior>(InteractableKind.Shrine),
-                SimpleScanner<ShrineCombatBehavior>(InteractableKind.Shrine),
-                SimpleScanner<ShrineHealingBehavior>(InteractableKind.Shrine),
-                SimpleScanner<ShrineRestackBehavior>(InteractableKind.Shrine),
-                SimpleScanner<ShrineBossBehavior>(InteractableKind.Shrine),
-                SimpleScanner<ScrapperController>(InteractableKind.Utility),
-                SimpleScanner<TeleporterInteraction>(InteractableKind.Teleporter, activeChecker: (teleporter) => teleporter.activationState != TeleporterInteraction.ActivationState.Charged),
-                SimpleScanner<SummonMasterBehavior>(InteractableKind.Drone),
-                SimpleScanner<BarrelInteraction>(InteractableKind.Barrel, activeChecker: barrel => !barrel.Networkopened),
-            };
+                hud = candidate;
+                cameraRig = candidate.cameraRigController;
+                break;
+            }
+            if (!hud)
+                return false;
+
+            GameObject parent = FindMapParent(out bool useObjectiveLayout);
+            if (!parent || !parent.GetComponentInParent<Canvas>())
+                return false;
+            sprites.PreloadConfiguredIcons();
+            minimap.CreateMinimap(sprites, parent, useObjectiveLayout);
+            spriteRevision = -1;
+            nextHudAttempt = 0f;
+            nextLayoutCheck = now + 0.5f;
+            logger.LogDebug($"[hud] parent={parent.name} objectiveLayout={useObjectiveLayout} {minimap.DescribeUI()}");
+            return minimap.Created;
         }
 
-        private ITrackedObjectScanner CreateAliveEntityScanner()
+        private GameObject FindMapParent(out bool useObjectiveLayout)
         {
-            bool EnemyMonsterSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Monster;
-
-            bool EnemyLunarSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Lunar;
-
-            bool EnemyVoidSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Void;
-
-            bool NeutralSelector(TeamComponent team) => team?.teamIndex == TeamIndex.Neutral;
-
-            bool MinionSelector(TeamComponent team)
+            ObjectivePanelController objectives = hud.GetComponentInChildren<ObjectivePanelController>(true);
+            if (objectives && objectives.transform.IsChildOf(hud.transform))
             {
-                var isAlly = team?.teamIndex == TeamIndex.Player;
-                var isPlayer = team?.GetComponent<CharacterBody>()?.isPlayerControlled;
-                if (isPlayer is null)
+                // RightInfoBar (the objective panel's parent) is the column that lays everything out.
+                Transform column = objectives.transform.parent;
+                if (column && column.GetComponent<VerticalLayoutGroup>() is VerticalLayoutGroup layout && layout.enabled)
                 {
-                    return isAlly;
+                    useObjectiveLayout = true;
+                    return column.gameObject;
                 }
-                return isAlly && (isPlayer == false);
-            }
-
-            bool PlayerSelector(TeamComponent team)
-            {
-                var isOwner = team?.GetComponent<NetworkStateMachine>()?.hasAuthority;
-                var isPlayer = team?.GetComponent<CharacterBody>()?.isPlayerControlled;
-                if (isOwner is null || isPlayer is null)
+                if (objectives.GetComponent<VerticalLayoutGroup>() is VerticalLayoutGroup innerLayout && innerLayout.enabled)
                 {
-                    return false;
-                }
-                return (isOwner == false) && (isPlayer == true);
-            }
-
-            GameObject DefaultConverter<T>(T value) where T : MonoBehaviour => value?.gameObject;
-
-            return new MultiKindScanner<TeamComponent>(true,
-                new MonoBehaviorScanner<TeamComponent>(logger), new MonoBehaviourSorter<TeamComponent>(
-                    new ISorter<TeamComponent>[]
-                    {
-                        new DefaultSorter<TeamComponent>(InteractableKind.EnemyMonster, DefaultConverter, EnemyMonsterSelector, x => true),
-                        new DefaultSorter<TeamComponent>(InteractableKind.EnemyLunar, DefaultConverter, EnemyLunarSelector, x => true),
-                        new DefaultSorter<TeamComponent>(InteractableKind.EnemyVoid, DefaultConverter, EnemyVoidSelector, x => true),
-                        new DefaultSorter<TeamComponent>(InteractableKind.Minion, DefaultConverter, MinionSelector, x => true),
-                        new DefaultSorter<TeamComponent>(InteractableKind.Player, DefaultConverter, PlayerSelector, x => true),
-                        new DefaultSorter<TeamComponent>(InteractableKind.Neutral, DefaultConverter, NeutralSelector, x => x?.gameObject.activeSelf ?? true),
-                    }
-                ), TrackedDimensions, SpriteManager, () => GetPlayerPosition().y);
-        }
-
-        private Vector3 GetPlayerPosition()
-        {
-            if (cameraRig == null)
-            {
-                cameraRig = Camera.main.transform.parent.GetComponent<CameraRigController>();
-
-                if (cameraRig == null)
-                {
-                    logger.LogError("Failed to retrieve camera rig in scene to retrieve camera position");
+                    useObjectiveLayout = true;
+                    return objectives.gameObject;
                 }
             }
-
-            return cameraRig.target?.transform?.position ?? Camera.main.transform.position;
+            useObjectiveLayout = false;
+            return hud.mainContainer;
         }
 
-        private void CreateDynamicScanners()
+        private void UpdateViewer()
         {
-            dynamicScanners = new ITrackedObjectScanner[]
+            GameObject target = cameraRig.target ? cameraRig.target : hud.targetBodyObject;
+            if (target != viewedObject)
             {
-                CreateAliveEntityScanner(),
-                new SingleKindScanner<GenericPickupController>(
-                    kind: InteractableKind.Item,
-                    dynamic: true,
-                    scanner: new MonoBehaviorScanner<GenericPickupController>(logger),
-                    range: TrackedDimensions,
-                    spriteManager: SpriteManager,
-                    playerHeightRetriever: () => GetPlayerPosition().y,
-                    converter: x => x.gameObject,
-                    activeChecker: x => true
-                ),
-                CreateGenericInteractionScanner()
-            };
+                viewedObject = target;
+                viewedTransform = target ? target.transform : null;
+                tracker.ViewerInteractor = target ? target.GetComponent<Interactor>() : null;
+                nextBodyScan = nextStateRefresh = 0f;
+            }
+            viewerPosition = viewedTransform ? viewedTransform.position : cameraRig.sceneCam.transform.position;
+            minimap.SetPlayerVisible(viewedTransform && Settings.GetSetting(InteractableKind.Player).Enabled);
         }
 
-        private void ScanStaticTypes()
+        private void LateUpdate()
         {
-            // if we have alreadys scanned don't scan again until we die or the scene changes (this method has sever performance implications)
-            if (ScannedStaticObjects)
-            {
+            if (!initialized)
                 return;
-            }
-
-            for (int i = 0; i < staticScanners.Length; i++)
-            {
-                staticScanners[i].ScanScene(TrackedObjects);
-            }
-
-            ScannedStaticObjects = true;
-        }
-
-        private void ScanDynamicTypes()
-        {
-            for (int i = 0; i < dynamicScanners.Length; i++)
-            {
-                dynamicScanners[i].ScanScene(TrackedObjects);
-            }
-        }
-
-        private void ClearDynamicTrackedObjects()
-        {
-            if (ScannedStaticObjects is false)
-            {
+            renderer.BeginFrame();
+            renderer.Diagnostics = Settings.DebugLogging;
+            if (!Run.instance || !visible || !minimap.Created || !cameraRig || !cameraRig.sceneCam || !hud)
                 return;
-            }
-
-            for (int i = 0; i < TrackedObjects.Count; i++)
+            try
             {
-                var obj = TrackedObjects[i];
-
-                if (obj.DynamicObject)
+                UpdateViewer();
+                minimap.SetViewRotation(cameraRig.sceneCam.transform.rotation);
+                if (spriteRevision != sprites.Revision)
                 {
-                    obj.Destroy();
-                    TrackedObjects.RemoveAt(i);
+                    minimap.RefreshPlayerSprite(sprites);
+                    spriteRevision = sprites.Revision;
                 }
+                lastScale = MapProjection.GetScale(bounds.Range, Settings.MinimapSize, zoom, Settings.WorldRadius);
+                renderer.Render(tracker.Bodies, viewerPosition, lastScale);
+                renderer.Render(tracker.Interactables, viewerPosition, lastScale);
+                renderer.Render(tracker.Pickups, viewerPosition, lastScale);
             }
+            catch (Exception exception)
+            {
+                HandleFailure(exception, Time.unscaledTime);
+            }
+        }
+
+        private void ReportDiagnostics()
+        {
+            logger.LogDebug($"[state] scene={SceneManager.GetActiveScene().name} run={(bool)Run.instance} sceneInfo={(bool)SceneInfo.instance} stage={(bool)Stage.instance} visible={visible} hud={(bool)hud} camera={(bool)cameraRig} viewer={(bool)viewedTransform} center={viewerPosition} radius={Settings.WorldRadius} zoom={zoom:F2} scale={lastScale:F5} bounds={bounds.Source}.");
+            logger.LogDebug($"[scan.scene] calls={tracker.SceneScans} components={tracker.SceneComponents} unregistered={tracker.UnregisteredCandidates} milliseconds={tracker.SceneScanMilliseconds:F2} next={(float.IsPositiveInfinity(nextSceneScan) ? "never" : (nextSceneScan - Time.unscaledTime).ToString("F1") + "s")}; [scan.interactables] {tracker.InteractionScan}; [scan.bodies] {tracker.BodyScan}; [scan.pickups] {tracker.PickupScan}.");
+            logger.LogDebug($"[track] interactables={tracker.Interactables.Count} bodies={tracker.Bodies.Count} pickups={tracker.Pickups.Count} activeStates={tracker.ActiveStates} scannerHidden={tracker.HiddenStates} repeatedErrors={tracker.RepeatedErrors}; [render] {renderer}.");
+            logger.LogDebug($"[ui] {minimap.DescribeUI()}; [sprites] {sprites.DescribeRequests()}");
+        }
+
+        private void ResetScene()
+        {
+            tracker?.Clear();
+            renderer?.Reset();
+            minimap?.Destroy();
+            bounds.Clear();
+            hud = null;
+            cameraRig = null;
+            viewedObject = null;
+            viewedTransform = null;
+            sceneInfo = null;
+            currentRun = null;
+            viewerPosition = Vector3.zero;
+            lastScale = 0f;
+            nextHudAttempt = nextInteractionScan = nextBodyScan = nextStateRefresh = nextSceneScan = 0f;
+            sceneScansThisStage = 0;
+        }
+
+        private void HandleFailure(Exception exception, float now)
+        {
+            if (now >= nextErrorLog)
+            {
+                nextErrorLog = now + 10f;
+                logger.LogException(exception, "MiniMap update failed; retrying after a short delay.");
+            }
+            ResetScene();
+            sceneInfo = SceneInfo.instance;
+            currentRun = Run.instance;
+            nextHudAttempt = now + 2f;
         }
     }
 }

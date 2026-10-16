@@ -5,8 +5,10 @@ Adds a contemporary Minimap to the game.
 
 - Implements a Mini Map In-Game.
 - Show interactable items, shrines, teleporters, enemies and more.
+- Shows dropped items and equipment as small cyan dots.
 - Single and Multiplayer Compatible.
 - Every icon is configurable for color, size and can be toggled on/off.
+- Works with all DLCs (Survivors of the Void, Seekers of the Storm, Alloyed Collective, Hallowed Concepts).
 
 #### Available Icons
 | Icon     |      Available     |  Configurable |
@@ -32,10 +34,11 @@ Adds a contemporary Minimap to the game.
 | Fans/Special | ✔ | ✔ |
 | Portals | ✔ | ✔ |
 | Totems | ✔ | ✔ |
-| Dropped Items | ✔ | ✔ |
+| Dropped Items / Equipment / Lunar Coins | ✔ | ✔ |
+| Command Cubes / Void Potentials | ✔ | ✔ |
 | Newt Altar | ✔ | ✔ |
-| Timed Chests | ❌ | ❌ |
-| Stealth Chests | ❌ | ❌ |
+| Timed Chests | ✔ (off by default) | ✔ |
+| Stealth Chests | ✔ (off by default) | ✔ |
 
 ### Showcase
 
@@ -43,16 +46,21 @@ Adds a contemporary Minimap to the game.
 	
 ### Dependencies
 - BepInEx
+- HookGenPatcher
+- RoR2BepInExPack
 
 ### Manual Installation
 - Place MiniMapLibrary.dll into your BepInEx/plugins folder.
 - Place MiniMapMod.dll into your BepInEx/plugins folder.
+- BepInExPack 5.4.2122 needs Newtonsoft.Json, which the game doesn't ship anymore. RoR2BepInExPack provides it, so install that too (mod managers do this automatically).
 
 ### How to Use
-- Use 'M' to hide or show the minimap. 
+- Use 'M' to hide or show the minimap.
+- Use '=' and '-' to zoom in and out.
 
 ### Troubleshooting
 - Toggle 'M' to hide and show minimap to force a refresh and/or a re-draw if something wonky is happening on the minimap.
+- Set `LogLevel = debug` under `[Settings.General]` in the config and play a stage. Every few seconds the log shows what the minimap found and drew, which helps a lot with bug reports.
 
 ### Config
 BepInEx Config. Each icon is individually configurable.
@@ -67,6 +75,8 @@ BepInEx Config. Each icon is individually configurable.
 - Elevation Marker Height
 - Elevation Marker Offset
 
+Map size, position, camera rotation, zoom keys and scan intervals are configurable too.
+
 ### Upcoming Changes
 None - Final Release
 
@@ -76,8 +86,21 @@ If you have an issue, discover a bug, or have a recommendation please file an is
 ### Collaborators
 Huge thanks to these awesome people who assisted in creating awesome features for this mod
 [Arcafanetiz](https://github.com/Arcafanetiz)
+[winterofhell](https://github.com/winterofhell)
 
 ### Change Log
+Release 4.2.0
+- updated for the current game version and all DLCs (Seekers of the Storm, Alloyed Collective, Hallowed Concepts)
+- dropped items, equipment, lunar coins, command cubes and void potentials now show up as small light-cyan dots, and disappear as soon as they're picked up
+- all icons are about 10% bigger, old configs that still use the default sizes get the new ones automatically
+- objects are now tracked through the game's own registries instead of rescanning the whole scene, so no more stutter every few seconds
+- timed and stealth chests can be turned on in the config (still off by default)
+- added End of the Cycle enemies
+- map no longer overlaps the objective panel
+- added map size, position and rotation settings
+- added debug logging for bug reports
+- fixed duplicate icons and icons sticking around after objects were destroyed
+
 Release 4.0.0
 - Finally added newt altars to the search, since everyone has been begging for it for literally years
 

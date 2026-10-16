@@ -17,7 +17,7 @@ namespace MiniMapLibrary.Scanner
         private readonly Range3D range;
         private readonly ISpriteManager spriteManager;
         private readonly Func<float> playerHeightRetriver;
-        private readonly bool enabled;
+        private readonly HashSet<int> existingIds = new();
 
         public SingleKindScanner(InteractableKind kind, bool dynamic, IScanner<T> scanner, Range3D range, ISpriteManager spriteManager, Func<float> playerHeightRetriever, Func <T, GameObject> converter, Func<T, bool>? activeChecker = null, Func<T, bool>? selector = null)
         {
@@ -34,27 +34,30 @@ namespace MiniMapLibrary.Scanner
 
             this.range = range ?? throw new ArgumentNullException(nameof(range));
             this.spriteManager = spriteManager ?? throw new ArgumentNullException(nameof(spriteManager));
-            this.playerHeightRetriver = playerHeightRetriever;
-            enabled = Settings.GetSetting(kind).Config.Enabled.Value;
+            this.playerHeightRetriver = playerHeightRetriever ?? throw new ArgumentNullException(nameof(playerHeightRetriever));
         }
 
         public void ScanScene(IList<ITrackedObject> list)
         {
             // if the kind is disabled, don't bother scanning
-            if (enabled is false)
+            InteractibleSetting setting = Settings.GetSetting(kind);
+            if (!(setting.Config?.Enabled.Value ?? setting.Enabled))
             {
                 return;
             }
 
             IEnumerable<T> foundObjects = scanner.Scan();
+            ScannerUtilities.CollectExistingIds(list, existingIds);
 
             foreach (var item in foundObjects)
             {
-                if (selector(item))
+                if (item != null && selector(item))
                 {
                     GameObject gameObject = converter(item);
+                    if (gameObject == null || !existingIds.Add(gameObject.GetInstanceID()))
+                        continue;
 
-                    list.Add(new ElevationTrackedObject(new TrackedObject<T>(kind, converter(item), null)
+                    list.Add(new ElevationTrackedObject(new TrackedObject<T>(kind, gameObject, null)
                     {
                         BackingObject = item,
                         ActiveChecker = activeChecker,

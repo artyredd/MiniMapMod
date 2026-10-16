@@ -1,20 +1,12 @@
-﻿using MiniMapLibrary.Config;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MiniMapLibrary.Config;
 using UnityEngine;
 
 namespace MiniMapLibrary
 {
-    public enum LogLevel
-    {
-        none,
-        info,
-        debug,
-        all
-    }
+    // Names are part of MiniMap.cfg; don't rename.
+    public enum LogLevel { none, info, debug, all }
 
     public static class Settings
     {
@@ -38,317 +30,282 @@ namespace MiniMapLibrary
             public const string Pencil = "Textures/MiscIcons/texEditIcon";
             public const string Portal = "Textures/MiscIcons/texQuickplay";
             public const string Lunar = "Textures/ItemIcons/BG/texLunarBGIcon";
+            // Not a game asset: SpriteManager draws this one itself.
+            public const string Dot = "MiniMap/Dot";
         }
 
         public static class Colors
         {
-            public static Color Yellow = new Color(255 / 255.0f, 219 / 255.0f, 88 / 255.0f);
-            public static Color Purple = new Color(122 / 255.0f, 105 / 255.0f, 244 / 255.0f);
-            public static Color DarkPurple = new Color(76 / 255.0f, 53 / 255.0f, 244 / 255.0f);
-            public static Color Teal = new Color(94 / 255.0f, 178 / 255.0f, 242 / 255.0f);
-            public static Color Pink = new Color(172 / 255.0f, 95 / 255.0f, 243 / 255.0f);
-            public static Color DarkPink = new Color(146 / 255.0f, 39 / 255.0f, 243 / 255.0f);
-            public static Color Orange = new Color(255 / 255.0f, 146 / 255.0f, 0 / 255.0f);
-            public static Color DarkTeal = new Color(94 / 255.0f, 178 / 255.0f, 242 / 255.0f);
+            public static Color Yellow = new(1f, 219f / 255f, 88f / 255f);
+            public static Color Purple = new(122f / 255f, 105f / 255f, 244f / 255f);
+            public static Color DarkPurple = new(76f / 255f, 53f / 255f, 244f / 255f);
+            public static Color Teal = new(94f / 255f, 178f / 255f, 242f / 255f);
+            public static Color Pink = new(172f / 255f, 95f / 255f, 243f / 255f);
+            public static Color DarkPink = new(146f / 255f, 39f / 255f, 243f / 255f);
+            public static Color Orange = new(1f, 146f / 255f, 0f);
+            public static Color DarkTeal = new(94f / 255f, 178f / 255f, 242f / 255f);
+            public static Color LightCyan = new(156f / 255f, 245f / 255f, 1f);
         }
 
-        public static Dimension2D MinimapSize { get; set; } = new Dimension2D(100, 100);
-
-        public static Dimension2D ViewfinderSize { get; set; } = new Dimension2D(10, 100);
-
+        public static Dimension2D MinimapSize { get; set; } = new(180f, 180f);
+        public static Dimension2D ViewfinderSize { get; set; } = new(180f, 180f);
         public static IDictionary<InteractableKind, InteractibleSetting> InteractibleSettings { get; } = new Dictionary<InteractableKind, InteractibleSetting>();
-
-        private static readonly Dimension2D DefaultUIElementSize = new Dimension2D(10, 10);
-
         public static Color PlayerIconColor { get; set; } = Color.white;
-
         public static Color DefaultActiveColor { get; set; } = Colors.Yellow;
-
         public static Color DefaultInactiveColor { get; set; } = Color.grey;
-
         public static Color DefaultElevationMarkerColor { get; set; } = Color.white;
+        public static Dimension2D DefaultElevationSize { get; set; } = new(3f, 3f);
 
-        public static Dimension2D DefaultElevationSize { get; set; } = new Dimension2D(3.0f, 3.0f);
+        private static readonly InteractibleSetting fallbackSetting = new()
+        {
+            Dimensions = new Dimension2D(11f, 11f),
+            ActiveColor = Colors.Yellow,
+            InactiveColor = Color.grey,
+            IconPath = Icons.Default,
+            Description = "Unknown interactable",
+            ElevationMarkerDimensions = new Dimension2D(3f, 3f),
+            ElevationMarkerOffset = new Dimension2D(0f, 0f)
+        };
 
-        public static LogLevel LogLevel => _logLevel.Value;
-
-        private static IConfigEntry<LogLevel> _logLevel;
-
-        public static float MinimapScale => _minimapScale.Value;
-        private static IConfigEntry<float> _minimapScale;
-
-        public static KeyCode MinimapKey => _MiniMapKey.Value;
-        private static IConfigEntry<KeyCode> _MiniMapKey;
-
-        public static KeyCode MinimapIncreaseScaleKey => _MinimapIncreaseScaleKey.Value;
-        private static IConfigEntry<KeyCode> _MinimapIncreaseScaleKey;
-
-        public static KeyCode MinimapDecreaseScaleKey => _MinimapDecreaseScaleKey.Value;
-        private static IConfigEntry<KeyCode> _MinimapDecreaseScaleKey;
-
+        private const int CurrentConfigRevision = 1;
         private static ILogger logger;
+        private static IConfigEntry<int> configRevision;
+        private static IConfigEntry<LogLevel> logLevel;
+        private static IConfigEntry<KeyCode> minimapKey, increaseScaleKey, decreaseScaleKey;
+        private static IConfigEntry<float> minimapScale, interactionScanInterval, bodyScanInterval, stateRefreshInterval, sceneScanInterval;
+        private static IConfigEntry<float> mapWidth, mapHeight, worldRadius, elevationThreshold;
+        private static IConfigEntry<bool> rotateWithCamera, showUnclassifiedInteractables;
+        private static IConfigEntry<Color> backgroundColor;
+        private static IConfigEntry<Vector2> positionOffset;
+
+        public static LogLevel LogLevel => logLevel?.Value ?? LogLevel.info;
+        public static KeyCode MinimapKey => minimapKey?.Value ?? KeyCode.M;
+        public static KeyCode MinimapIncreaseScaleKey => increaseScaleKey?.Value ?? KeyCode.Equals;
+        public static KeyCode MinimapDecreaseScaleKey => decreaseScaleKey?.Value ?? KeyCode.Minus;
+        public static float MinimapScale => Numeric.Clamp(minimapScale?.Value ?? 1f, 0.1f, 20f, 1f);
+        public static float InteractionScanInterval => Numeric.Clamp(interactionScanInterval?.Value ?? 1f, 0.25f, 30f, 1f);
+        public static float BodyScanInterval => Numeric.Clamp(bodyScanInterval?.Value ?? 0.25f, 0.1f, 5f, 0.25f);
+        public static float StateRefreshInterval => Numeric.Clamp(stateRefreshInterval?.Value ?? 0.2f, 0.1f, 5f, 0.2f);
+        public static float SceneScanInterval => Numeric.Clamp(sceneScanInterval?.Value ?? 5f, 2f, 60f, 5f);
+        public static bool DebugLogging => LogLevel >= LogLevel.debug;
+        public static float WorldRadius => Numeric.Clamp(worldRadius?.Value ?? 0f, 0f, 100000f, 0f);
+        public static float ElevationThreshold => Numeric.Clamp(elevationThreshold?.Value ?? 5f, 0f, 10000f, 5f);
+        public static bool RotateWithCamera => rotateWithCamera?.Value ?? true;
+        public static bool ShowUnclassifiedInteractables => showUnclassifiedInteractables?.Value ?? true;
+        public static Color BackgroundColor => SanitizeColor(backgroundColor?.Value ?? new Color(0.03f, 0.04f, 0.06f, 0.65f));
+        public static Vector2 PositionOffset
+        {
+            get
+            {
+                Vector2 offset = positionOffset?.Value ?? new Vector2(0f, -8f);
+                return new Vector2(Numeric.Clamp(offset.x, -4096f, 4096f, 0f), Numeric.Clamp(offset.y, -4096f, 4096f, -8f));
+            }
+        }
 
         static Settings()
         {
-            InitializeDefaultSettings();
+            Add(InteractableKind.Chest, 9f, 7f, "Chests and adaptive chests", Icons.Chest);
+            Add(InteractableKind.StealthChest, 9f, 7f, "Cloaked chests (reveals their locations when enabled)", Icons.Chest, enabled: false);
+            Add(InteractableKind.TimedChest, 9f, 7f, "Timed security chests (grey after locking or opening)", Icons.Chest, enabled: false);
+            Add(InteractableKind.Shop, 8f, 6f, "Shops and terminals", Icons.Chest, Colors.Teal);
+            Add(InteractableKind.Equipment, 9f, 7f, "Equipment barrels", Icons.Chest, Colors.Orange);
+            Add(InteractableKind.Printer, 11f, 9f, "Printers", Icons.Chest, Colors.Purple);
+            Add(InteractableKind.Utility, 6f, 6f, "Scrappers, cleansing pools and drone stations", Icons.Wrench);
+            Add(InteractableKind.LunarPod, 8f, 8f, "Lunar pods", Icons.LootBag, Color.cyan);
+            Add(InteractableKind.Shrine, 11f, 11f, "Shrines (excluding Newt and the Altar of Gold)", Icons.Shrine);
+            Add(InteractableKind.NewtAltar, 11f, 11f, "Newt altars", Icons.Lunar);
+            Add(InteractableKind.Teleporter, 17f, 17f, "Teleporters", Icons.Boss, Color.white, Color.green);
+            Add(InteractableKind.Barrel, 3f, 3f, "Barrels", Icons.Circle);
+            Add(InteractableKind.Drone, 8f, 8f, "Broken drones and turrets", Icons.Drone);
+            Add(InteractableKind.Special, 6f, 6f, "Other interactables, landing pods, fans and stage objectives", Icons.Default);
+            Add(InteractableKind.EnemyMonster, 3f, 3f, "Enemies", Icons.Circle, Color.red, elevationColor: Color.red);
+            Add(InteractableKind.EnemyLunar, 3f, 3f, "Lunar enemies", Icons.Circle, Color.red, elevationColor: Color.red);
+            Add(InteractableKind.EnemyVoid, 13f, 13f, "Void enemies", Icons.Attack, Color.magenta, elevationColor: Color.magenta);
+            Add(InteractableKind.EnemyEndOfCycle, 4f, 4f, "End of the Cycle enemies (Hallowed Concepts)", Icons.Attack, Colors.Orange, elevationColor: Colors.Orange);
+            Add(InteractableKind.Minion, 3f, 3f, "Allied drones and minions", Icons.Circle, Color.green, elevationColor: Color.green);
+            Add(InteractableKind.Player, 9f, 9f, "The viewed character and other players", Icons.Sprint, PlayerIconColor, PlayerIconColor);
+            Add(InteractableKind.Item, 3f, 3f, "Item choice terminals that are not dropped pickups", Icons.Circle, Colors.Teal, Color.cyan);
+            Add(InteractableKind.Portal, 8f, 8f, "Portals, the Altar of Gold and ritual gongs", Icons.Portal);
+            Add(InteractableKind.Totem, 8f, 8f, "Halcyon beacons and power pedestals", Icons.Cube, Colors.DarkTeal);
+            Add(InteractableKind.Neutral, 4f, 4f, "Neutral objects and NPCs", Icons.Circle, Color.white);
+            Add(InteractableKind.Pickup, 2f, 2f, "Dropped items, equipment, lunar coins, command cubes and void potentials", Icons.Dot,
+                Colors.LightCyan, elevationMarker: false);
         }
 
-        private static void InitializeDefaultSettings()
+        // 4.1.x (and upstream 4.0.0) defaults. Configs still holding these values
+        // are moved to the current defaults once; customised sizes are left alone.
+        private static readonly Dictionary<InteractableKind, (float Width, float Height)> legacySizes = new()
         {
-            static void Add(InteractableKind type,
-                float width = -1,
-                float height = -1,
-                Color activeColor = default,
-                Color inactiveColor = default,
-                string description = "",
-                string path = Icons.Default,
-                Color elevationMarkerColor = default
-            )
-            {
-                activeColor = activeColor == default ? DefaultActiveColor : activeColor;
-                inactiveColor = inactiveColor == default ? DefaultInactiveColor : inactiveColor;
-                elevationMarkerColor = elevationMarkerColor == default ? DefaultElevationMarkerColor : elevationMarkerColor;
+            [InteractableKind.Chest] = (8f, 6f),
+            [InteractableKind.StealthChest] = (8f, 6f),
+            [InteractableKind.TimedChest] = (8f, 6f),
+            [InteractableKind.Shop] = (7f, 5f),
+            [InteractableKind.Equipment] = (8f, 6f),
+            [InteractableKind.Printer] = (10f, 8f),
+            [InteractableKind.Utility] = (5f, 5f),
+            [InteractableKind.LunarPod] = (7f, 7f),
+            [InteractableKind.Shrine] = (10f, 10f),
+            [InteractableKind.NewtAltar] = (10f, 10f),
+            [InteractableKind.Teleporter] = (15f, 15f),
+            [InteractableKind.Drone] = (7f, 7f),
+            [InteractableKind.Special] = (5f, 5f),
+            [InteractableKind.EnemyVoid] = (12f, 12f),
+            [InteractableKind.Player] = (8f, 8f),
+            [InteractableKind.Portal] = (7f, 7f),
+            [InteractableKind.Totem] = (7f, 7f),
+        };
 
-                Dimension2D size = DefaultUIElementSize;
+        private static readonly Dictionary<InteractableKind, (float Width, float Height)> defaultSizes = new();
 
-                if (width != -1 || height != -1)
-                {
-                    size = new Dimension2D(width, height);
-                }
-
-                var setting = new InteractibleSetting()
-                {
-                    ActiveColor = activeColor,
-                    InactiveColor = inactiveColor,
-                    Dimensions = size
-                };
-
-                setting.Description = description;
-                setting.IconPath = path;
-
-                setting.ElevationMarkerColor = elevationMarkerColor;
-                setting.ElevationMarkerEnabled = true;
-                setting.ElevationMarkerDimensions = new Dimension2D(DefaultElevationSize.Width, DefaultElevationSize.Height);
-                setting.ElevationMarkerOffset = new Dimension2D(
-                    (size.Width / 2.0f) + (DefaultElevationSize.Width / 2.0f),
-                    (size.Height / 2.0f) + (DefaultElevationSize.Height / 2.0f)
-                );
-
-                InteractibleSettings.Add(type, setting);
-            }
-
-            Add(InteractableKind.Chest, 8, 6,
-                description: "Chests, Roulette Chests",
-                path: Icons.Chest);
-
-            Add(InteractableKind.Shop, 7, 5,
-                activeColor: Colors.Teal,
-                description: "Shops",
-                path: Icons.Chest);
-
-            Add(InteractableKind.Equipment, 8, 6,
-                activeColor: Colors.Orange,
-                description: "Equipment Barrels",
-                path: Icons.Chest);
-
-            Add(InteractableKind.Printer, 10, 8,
-                activeColor: Colors.Purple,
-                description: "Printers",
-                path: Icons.Chest);
-
-            Add(InteractableKind.Utility, 5, 5,
-                description: "Scrappers",
-                path: Icons.Wrench);
-
-            Add(InteractableKind.LunarPod, 7, 7,
-                description: "Lunar pods (chests)",
-                activeColor: Color.cyan,
-                path: Icons.LootBag);
-
-            Add(InteractableKind.Shrine,
-                description: "All shrines (excluding Newt)",
-                path: Icons.Shrine);
-
-            Add(InteractableKind.NewtAltar,
-                description: "Newt Altar",
-                path: Icons.Lunar);
-
-            Add(InteractableKind.Teleporter, 15, 15,
-                activeColor: Color.white,
-                inactiveColor: Color.green,
-                description: "Boss teleporters",
-                path: Icons.Boss);
-
-            Add(InteractableKind.Barrel, 3, 3,
-                description: "Barrels",
-                path: Icons.Circle);
-
-            Add(InteractableKind.Drone, 7, 7,
-                description: "Drones",
-                path: Icons.Drone);
-
-            Add(InteractableKind.Special, 5, 5,
-                description: "Special interactibles such as the landing pod and fans",
-                path: Icons.Default);
-
-            Add(InteractableKind.EnemyMonster, 3, 3,
-                activeColor: Color.red,
-                elevationMarkerColor: Color.red,
-                description: "Enemies",
-                path: Icons.Circle);
-
-            Add(InteractableKind.EnemyLunar, 3, 3,
-                activeColor: Color.red,
-                elevationMarkerColor: Color.red,
-                description: "Lunar enemies",
-                path: Icons.Circle);
-
-            Add(InteractableKind.EnemyVoid, 12, 12,
-                activeColor: Color.magenta,
-                elevationMarkerColor: Color.magenta,
-                description: "Void touched enemies",
-                path: Icons.Attack);
-
-            Add(InteractableKind.Minion, 3, 3,
-                activeColor: Color.green,
-                elevationMarkerColor: Color.green,
-                description: "Minions",
-                path: Icons.Circle);
-
-            Add(InteractableKind.Player, 8, 8,
-                activeColor: PlayerIconColor,
-                inactiveColor: PlayerIconColor,
-                description: "Player, including friends",
-                path: Icons.Sprint);
-
-            Add(InteractableKind.Item, 3, 3,
-                activeColor: Colors.Teal,
-                inactiveColor: Color.cyan,
-                description: "Dropped items and lunar coins",
-                path: Icons.Circle);
-
-            Add(InteractableKind.Portal, 7, 7,
-               activeColor: DefaultActiveColor,
-               inactiveColor: DefaultInactiveColor,
-               description: "Portal markers, or objects that spawn portals when interacted with (excluding newt altar)",
-               path: Icons.Portal);
-
-            Add(InteractableKind.Totem, 7, 7,
-               activeColor: Colors.DarkTeal,
-               inactiveColor: DefaultInactiveColor,
-               description: "Totems, or totem adjacent objects",
-               path: Icons.Cube);
-
-            Add(InteractableKind.Neutral, 4, 4,
-               activeColor: Color.white,
-               inactiveColor: DefaultInactiveColor,
-               description: "Neutral objects or NPCs",
-               path: Icons.Circle);
-        }
-
-        public static InteractibleSetting GetSetting(InteractableKind type)
+        private static void Add(InteractableKind kind, float width, float height, string description, string path,
+            Color? activeColor = null, Color? inactiveColor = null, Color? elevationColor = null, bool enabled = true, bool elevationMarker = true)
         {
-            if (InteractibleSettings.ContainsKey(type))
+            defaultSizes.Add(kind, (width, height));
+            InteractibleSettings.Add(kind, new InteractibleSetting
             {
-                return InteractibleSettings[type];
-            }
-
-            return new InteractibleSetting()
-            {
-                Dimensions = DefaultUIElementSize,
-                ActiveColor = DefaultActiveColor,
-                InactiveColor = DefaultInactiveColor,
-                Description = "NO_DESCRIPTION",
-                IconPath = Icons.Default
-            };
+                Enabled = enabled,
+                Dimensions = new Dimension2D(width, height),
+                ActiveColor = activeColor ?? DefaultActiveColor,
+                InactiveColor = inactiveColor ?? DefaultInactiveColor,
+                Description = description,
+                IconPath = path,
+                ElevationMarkerEnabled = elevationMarker,
+                ElevationMarkerColor = elevationColor ?? DefaultElevationMarkerColor,
+                ElevationMarkerDimensions = new Dimension2D(DefaultElevationSize.Width, DefaultElevationSize.Height),
+                ElevationMarkerOffset = ElevationOffset(width, height)
+            });
         }
+
+        private static Dimension2D ElevationOffset(float width, float height) =>
+            new((width + DefaultElevationSize.Width) * 0.5f, (height + DefaultElevationSize.Height) * 0.5f);
+
+        public static InteractibleSetting GetSetting(InteractableKind type) =>
+            InteractibleSettings.TryGetValue(type, out InteractibleSetting setting) ? setting : fallbackSetting;
 
         public static Color GetColor(InteractableKind type, bool active)
         {
-            if (InteractibleSettings.ContainsKey(type))
-            {
-                var setting = InteractibleSettings[type];
-
-                return active ? setting.ActiveColor : setting.InactiveColor;
-            }
-
-            return active ? DefaultActiveColor : DefaultInactiveColor;
+            InteractibleSetting setting = GetSetting(type);
+            return active ? setting.ActiveColor : setting.InactiveColor;
         }
 
-        public static Dimension2D GetInteractableSize(InteractableKind type)
-        {
-            if (InteractibleSettings.ContainsKey(type))
-            {
-                return InteractibleSettings[type]?.Dimensions ?? DefaultUIElementSize;
-            }
-
-            return DefaultUIElementSize;
-        }
+        public static Dimension2D GetInteractableSize(InteractableKind type) => GetSetting(type).Dimensions;
 
         public static void LoadApplicationSettings(ILogger logger, IConfig config)
         {
             Settings.logger = logger;
-            _logLevel = config.Bind<LogLevel>($"Settings.General", "LogLevel", LogLevel.info, "The amount of information that the minimap mod should output to the console during runtime");
-            _MinimapDecreaseScaleKey = config.Bind<KeyCode>($"Settings.Zoom", "UnZoomKey", KeyCode.Minus, "Zooms the minimap OUT");
-            _MinimapIncreaseScaleKey = config.Bind<KeyCode>($"Settings.Zoom", "ZoomKey", KeyCode.Equals, "Zooms the minimap IN");
-            _MiniMapKey = config.Bind<KeyCode>($"Settings.General", "EnableKey", KeyCode.M, "Key that enables or disabled the minimap");
-            _minimapScale = config.Bind<float>($"Settings.Zoom", "zoomLevel", 1.0f, "How far the minimap should be zoomed in");
+            logLevel = config.Bind("Settings.General", "LogLevel", LogLevel.info, "Console logging detail. Errors and warnings are always logged.");
+            minimapKey = config.Bind("Settings.General", "EnableKey", KeyCode.M, "Show or hide the minimap.");
+            increaseScaleKey = config.Bind("Settings.Zoom", "ZoomKey", KeyCode.Equals, "Zoom in.");
+            decreaseScaleKey = config.Bind("Settings.Zoom", "UnZoomKey", KeyCode.Minus, "Zoom out.");
+            minimapScale = config.Bind("Settings.Zoom", "zoomLevel", 1f, "Saved map zoom (0.1-20). Icon sizes remain readable while zooming.");
+            interactionScanInterval = config.Bind("Settings.Performance", "InteractableScanInterval", 1f, "Seconds between interactable registry and cached scene-candidate refreshes (0.25-30).");
+            bodyScanInterval = config.Bind("Settings.Performance", "BodyScanInterval", 0.25f, "Seconds between character and dropped pickup refreshes (0.1-5).");
+            stateRefreshInterval = config.Bind("Settings.Performance", "StateRefreshInterval", 0.2f, "Seconds between icon availability/color checks (0.1-5). Positions update each frame.");
+            sceneScanInterval = config.Bind("Settings.Performance", "SceneScanInterval", 5f, "Seconds between fallback searches for objects missing from the game's registries (2-60). After the first few passes of a stage it only keeps running if such objects were found.");
+            mapWidth = config.Bind("Settings.Layout", "Width", 180f, "Map width in HUD units (60-800), affected by the game's HUD scale.");
+            mapHeight = config.Bind("Settings.Layout", "Height", 180f, "Map height in HUD units (60-800).");
+            positionOffset = config.Bind("Settings.Layout", "PositionOffset", new Vector2(0f, -8f), "Offset from the map's reserved HUD space. Positive X moves right; positive Y moves up.");
+            backgroundColor = config.Bind("Settings.Layout", "BackgroundColor", new Color(0.03f, 0.04f, 0.06f, 0.65f), "Background color and opacity. Alpha zero makes it transparent.");
+            rotateWithCamera = config.Bind("Settings.Layout", "RotateWithCamera", true, "Rotate with the camera. Disable for a north-up map.");
+            worldRadius = config.Bind("Settings.Zoom", "WorldRadius", 0f, "World units from center to the shortest edge at zoom 1. Zero fits stage bounds automatically.");
+            elevationThreshold = config.Bind("Settings.General", "ElevationThreshold", 5f, "Vertical distance before an elevation arrow appears.");
+            configRevision = config.Bind("Settings.General", "ConfigRevision", 0, "Used to migrate old default values. Do not change.");
+            showUnclassifiedInteractables = config.Bind("Settings.General", "ShowUnclassifiedInteractables", true, "Show other scanner-visible interactables as Special, including new DLC and modded objects registered with the game.");
+            Refresh();
+        }
 
-            logger.LogDebug($"Loaded log level: {Settings.LogLevel} Minimap[Key: {MinimapKey}] Zoom[{Settings.MinimapScale * 100}% UnZoomKey:{MinimapDecreaseScaleKey} ZoomKey:{MinimapIncreaseScaleKey}]");
+        public static void LoadConfigEntries(IConfig config)
+        {
+            foreach (InteractableKind kind in InteractibleSettings.Keys)
+                LoadConfigEntries(kind, config);
+            if (configRevision is IMutableConfigEntry<int> revision && revision.Value < CurrentConfigRevision)
+                revision.Value = CurrentConfigRevision;
         }
 
         public static void LoadConfigEntries(InteractableKind type, IConfig config)
         {
-            InteractibleSetting setting;
-
-            if (InteractibleSettings.ContainsKey(type) is false)
+            InteractableKind kind = type;
+            if (!InteractibleSettings.TryGetValue(kind, out InteractibleSetting setting))
             {
-                logger.LogError($"Failed to find an interactible setting for {type}, aborting config loading for {type}s");
+                logger?.LogError($"No icon settings registered for {kind}.");
                 return;
             }
 
-            setting = InteractibleSettings[type];
-
-            string sectionTitle = $"Icon.{type}";
-
-            IConfigEntry<bool> enabled = config.Bind<bool>(sectionTitle, "enabled", true, $"Whether or not {setting.Description} should be shown on the minimap");
-            IConfigEntry<Color> activeColor = config.Bind<Color>(sectionTitle, "activeColor", setting.ActiveColor, "The color the icon should be when it has not been interacted with");
-            IConfigEntry<Color> inactiveColor = config.Bind<Color>(sectionTitle, "inactiveColor", setting.InactiveColor, "The color the icon should be when it has used/bought");
-            IConfigEntry<float> width = config.Bind<float>(sectionTitle, "width", setting.Dimensions.Width, "Width of the icon");
-            IConfigEntry<float> height = config.Bind<float>(sectionTitle, "height", setting.Dimensions.Height, "Width of the icon");
-            IConfigEntry<string> path = config.Bind<string>(sectionTitle, "icon", setting.IconPath ?? Icons.Default, $"The streaming assets path of the icon");
-
-            IConfigEntry<bool> elevationEnabled = config.Bind<bool>(sectionTitle, "elevationMarkerEnabled", true, $"Whether or not the elevation marker for this icon should be shown on the minimap");
-            IConfigEntry<Color> elevationActiveColor = config.Bind<Color>(sectionTitle, "elevationMarkerColor", setting.ElevationMarkerColor, "The color the elevation marker should be when it is shown");
-            IConfigEntry<float> elevationWidth = config.Bind<float>(sectionTitle, "elevationMarkerWidth", setting.ElevationMarkerDimensions.Width, "Width of the elevation marker icon");
-            IConfigEntry<float> elevationHeight = config.Bind<float>(sectionTitle, "elevationMarkerHeight", setting.ElevationMarkerDimensions.Height, "Width of the elevation marker  icon");
-            IConfigEntry<Vector2> elevationOffset = config.Bind<Vector2>(sectionTitle, "elevationMarkerOffset", new Vector2(setting.ElevationMarkerOffset.Width, setting.ElevationMarkerOffset.Height), "The value of the x and y of the elevation marker's position relative to the main icon's center");
-
+            string section = $"Icon.{kind}";
             setting.Config = new SettingConfigGroup(
-                enabled,
-                height,
-                width,
-                activeColor,
-                inactiveColor,
-                path,
-                elevationEnabled,
-                elevationOffset,
-                elevationHeight,
-                elevationWidth,
-                elevationActiveColor
-            );
-
-            setting.ActiveColor = activeColor.Value;
-            setting.InactiveColor = inactiveColor.Value;
-            setting.Dimensions.Height = height.Value;
-            setting.Dimensions.Width = width.Value;
-            setting.IconPath = path.Value;
-            setting.ElevationMarkerColor = elevationActiveColor.Value;
-            setting.ElevationMarkerEnabled = elevationEnabled.Value;
-            setting.ElevationMarkerOffset = new Dimension2D(elevationOffset.Value.x, elevationOffset.Value.y);
-            setting.ElevationMarkerDimensions = new Dimension2D(elevationWidth.Value, elevationHeight.Value);
-
-            logger.LogInfo($"Loaded {type} config [{(setting.Config.Enabled.Value ? "enabled" : "disabled")}, {setting.ActiveColor}, {setting.InactiveColor}, ({setting.Dimensions.Width}x{setting.Dimensions.Height})] Elevation [{(setting.Config.EnabledElevationMarker.Value ? "enabled" : "disabled")}, {setting.ElevationMarkerColor}, dimensions: ({setting.ElevationMarkerDimensions.Width}x{setting.ElevationMarkerDimensions.Height}), offset: ({setting.ElevationMarkerOffset.Width}x{setting.ElevationMarkerOffset.Height})]");
+                config.Bind(section, "enabled", setting.Enabled, $"Show {setting.Description} on the minimap."),
+                config.Bind(section, "height", setting.Dimensions.Height, "Icon height in HUD units."),
+                config.Bind(section, "width", setting.Dimensions.Width, "Icon width in HUD units."),
+                config.Bind(section, "activeColor", setting.ActiveColor, "Color while available."),
+                config.Bind(section, "inactiveColor", setting.InactiveColor, "Color after use or while unavailable."),
+                config.Bind(section, "icon", setting.IconPath, "Legacy resource path of the icon. Existing icon paths remain supported."),
+                config.Bind(section, "elevationMarkerEnabled", setting.ElevationMarkerEnabled, "Show an elevation marker."),
+                config.Bind(section, "elevationMarkerOffset", new Vector2(setting.ElevationMarkerOffset.Width, setting.ElevationMarkerOffset.Height), "Elevation marker offset from the icon center."),
+                config.Bind(section, "elevationMarkerHeight", setting.ElevationMarkerDimensions.Height, "Elevation marker height."),
+                config.Bind(section, "elevationMarkerWidth", setting.ElevationMarkerDimensions.Width, "Elevation marker width."),
+                config.Bind(section, "elevationMarkerColor", setting.ElevationMarkerColor, "Elevation marker color."));
+            if ((configRevision?.Value ?? CurrentConfigRevision) < 1 && legacySizes.TryGetValue(kind, out var legacy))
+                MigrateLegacySize(setting.Config, legacy, defaultSizes[kind]);
+            RefreshSetting(kind, setting);
         }
+
+        private static void MigrateLegacySize(ISettingConfigGroup config, (float Width, float Height) legacy, (float Width, float Height) current)
+        {
+            if (config.Width is IMutableConfigEntry<float> width && Same(width.Value, legacy.Width))
+                width.Value = current.Width;
+            if (config.Height is IMutableConfigEntry<float> height && Same(height.Value, legacy.Height))
+                height.Value = current.Height;
+            Dimension2D legacyOffset = ElevationOffset(legacy.Width, legacy.Height);
+            if (config.ElevationMarkerOffset is IMutableConfigEntry<Vector2> offset
+                && Same(offset.Value.x, legacyOffset.Width) && Same(offset.Value.y, legacyOffset.Height))
+            {
+                Dimension2D next = ElevationOffset(current.Width, current.Height);
+                offset.Value = new Vector2(next.Width, next.Height);
+            }
+
+            static bool Same(float a, float b) => Math.Abs(a - b) < 0.001f;
+        }
+
+        public static void SetMinimapScale(float zoom)
+        {
+            if (minimapScale is IMutableConfigEntry<float> mutable)
+                mutable.Value = Numeric.Clamp(zoom, 0.1f, 20f, 1f);
+        }
+
+        public static void Refresh()
+        {
+            float width = Numeric.Clamp(mapWidth?.Value ?? 180f, 60f, 800f, 180f);
+            float height = Numeric.Clamp(mapHeight?.Value ?? 180f, 60f, 800f, 180f);
+            ViewfinderSize.Width = MinimapSize.Width = width;
+            ViewfinderSize.Height = MinimapSize.Height = height;
+            foreach (KeyValuePair<InteractableKind, InteractibleSetting> pair in InteractibleSettings)
+                RefreshSetting(pair.Key, pair.Value);
+        }
+
+        private static void RefreshSetting(InteractableKind kind, InteractibleSetting setting)
+        {
+            ISettingConfigGroup config = setting.Config;
+            if (config == null)
+                return;
+
+            (float width, float height) = defaultSizes.TryGetValue(kind, out var size) ? size : (11f, 11f);
+            setting.Enabled = config.Enabled.Value;
+            setting.Dimensions.Width = Numeric.Clamp(config.Width.Value, 0.5f, 128f, width);
+            setting.Dimensions.Height = Numeric.Clamp(config.Height.Value, 0.5f, 128f, height);
+            setting.ActiveColor = SanitizeColor(config.ActiveColor.Value);
+            setting.InactiveColor = SanitizeColor(config.InactiveColor.Value);
+            setting.IconPath = string.IsNullOrWhiteSpace(config.IconPath.Value) ? Icons.Default : config.IconPath.Value;
+            setting.ElevationMarkerEnabled = config.EnabledElevationMarker?.Value ?? false;
+            setting.ElevationMarkerColor = SanitizeColor(config.ElevationMarkerColor?.Value ?? Color.white);
+            setting.ElevationMarkerDimensions.Width = Numeric.Clamp(config.ElevationMarkerWidth?.Value ?? 3f, 0.5f, 64f, 3f);
+            setting.ElevationMarkerDimensions.Height = Numeric.Clamp(config.ElevationMarkerHeight?.Value ?? 3f, 0.5f, 64f, 3f);
+            Vector2 offset = config.ElevationMarkerOffset?.Value ?? Vector2.zero;
+            setting.ElevationMarkerOffset.Width = Numeric.Clamp(offset.x, -256f, 256f, 0f);
+            setting.ElevationMarkerOffset.Height = Numeric.Clamp(offset.y, -256f, 256f, 0f);
+        }
+
+        private static Color SanitizeColor(Color color) => new(
+            Numeric.Clamp(color.r, 0f, 1f, 1f), Numeric.Clamp(color.g, 0f, 1f, 1f),
+            Numeric.Clamp(color.b, 0f, 1f, 1f), Numeric.Clamp(color.a, 0f, 1f, 1f));
     }
 }

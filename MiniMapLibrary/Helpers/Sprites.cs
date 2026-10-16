@@ -11,19 +11,17 @@ namespace MiniMapLibrary.Helpers
     {
         public static GameObject CreateIcon(Sprite sprite, float width, float height, Color color)
         {
-            GameObject icon = new GameObject();
-
-            var transform = icon.AddComponent<RectTransform>();
+            GameObject icon = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var transform = (RectTransform)icon.transform;
 
             transform.sizeDelta = new Vector2(width, height);
 
-            icon.AddComponent<CanvasRenderer>();
-
-            var image = icon.AddComponent<Image>();
+            var image = icon.GetComponent<Image>();
 
             image.sprite = sprite;
 
             image.color = color;
+            image.raycastTarget = false;
 
             return icon;
         }
