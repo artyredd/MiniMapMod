@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 
 namespace MiniMapLibrary
 {
+    [Flags]
     public enum InteractableKind
     {
         none = 0,
@@ -30,6 +27,10 @@ namespace MiniMapLibrary
         Totem = 1 << 18,
         Neutral = 1 << 19,
         NewtAltar = 1 << 20,
+        StealthChest = 1 << 21,
+        TimedChest = 1 << 22,
+        EnemyEndOfCycle = 1 << 23,
+        Pickup = 1 << 24,
         All = int.MaxValue
     }
 }

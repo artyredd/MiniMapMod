@@ -9,13 +9,12 @@ namespace MiniMapLibrary.Helpers
     {
         public static void SetParent(Transform child, Transform parent)
         {
-            child.transform.SetParent(parent);
-
-            child.transform.localRotation = Quaternion.identity;
-
-            child.transform.localPosition = new Vector3(0, 0, 0);
-
-            child.transform.localScale = new Vector3(1, 1, 1);
+            child.SetParent(parent, false);
+            // Layers aren't inherited, and the game's UI camera doesn't render the Default layer.
+            child.gameObject.layer = parent.gameObject.layer;
+            child.localRotation = Quaternion.identity;
+            child.localPosition = Vector3.zero;
+            child.localScale = Vector3.one;
         }
     }
 }

@@ -2,23 +2,39 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
+		<LangVersion>12.0</LangVersion>
+		<Version>4.2.0</Version>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>4.2.0.0</FileVersion>
+		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+		<Deterministic>true</Deterministic>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Reference Include="UnityEngine">
-	    <HintPath>..\MiniMapMod\libs\UnityEngine.dll</HintPath>
-	  </Reference>
-		<Reference Include="UnityEngine">
+		<Reference Include="UnityEngine.CoreModule">
 			<HintPath>..\MiniMapMod\libs\UnityEngine.CoreModule.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UI">
-		  <HintPath>..\MiniMapMod\libs\UnityEngine.UI.dll</HintPath>
+			<HintPath>..\MiniMapMod\libs\UnityEngine.UI.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UIModule">
-		  <HintPath>..\MiniMapMod\libs\UnityEngine.UIModule.dll</HintPath>
+			<HintPath>..\MiniMapMod\libs\UnityEngine.UIModule.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 		<Reference Include="LegacyResourcesAPI">
-		  <HintPath>..\MiniMapMod\libs\LegacyResourcesAPI.dll</HintPath>
+			<HintPath>..\MiniMapMod\libs\LegacyResourcesAPI.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unity.Addressables">
+			<HintPath>..\MiniMapMod\libs\Unity.Addressables.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unity.ResourceManager">
+			<HintPath>..\MiniMapMod\libs\Unity.ResourceManager.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 	</ItemGroup>
 

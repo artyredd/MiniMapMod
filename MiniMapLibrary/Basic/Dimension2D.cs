@@ -15,6 +15,8 @@ namespace MiniMapLibrary
             get => _Width;
             set
             {
+                if (_Width == value)
+                    return;
                 _Width = value;
                 OnChanged?.Invoke(this);
             }
@@ -24,6 +26,8 @@ namespace MiniMapLibrary
             get => _Height;
             set
             {
+                if (_Height == value)
+                    return;
                 _Height = value;
                 OnChanged?.Invoke(this);
             }

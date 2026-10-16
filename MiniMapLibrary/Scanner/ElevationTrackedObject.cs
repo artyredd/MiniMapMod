@@ -1,145 +1,97 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MiniMapLibrary.Scanner
 {
     public class ElevationTrackedObject : ITrackedObject
     {
-        private const float margin = 5.0f;
-
         private readonly ITrackedObject backing;
         private readonly ISpriteManager spriteManager;
         private readonly Func<float> heightRetriever;
-        private static readonly Quaternion upDirection;
-        private static readonly Quaternion downDirection;
-
+        private readonly InteractibleSetting setting;
         private Transform arrowTransform;
-        private GameObject arrow;
-
-        private bool flag_initialized;
-        private bool flag_disabled;
-
-        static ElevationTrackedObject() {
-            upDirection = Quaternion.AngleAxis(-90.0f, Vector3.forward);
-            downDirection = Quaternion.AngleAxis(90.0f, Vector3.forward);
-        }
+        private Image arrowImage;
+        private int direction;
 
         public ElevationTrackedObject(ITrackedObject backing, ISpriteManager spriteManager, Func<float> heightRetriever)
         {
-            this.backing = backing;
-            this.spriteManager = spriteManager;
-            this.heightRetriever = heightRetriever;
+            this.backing = backing ?? throw new ArgumentNullException(nameof(backing));
+            this.spriteManager = spriteManager ?? throw new ArgumentNullException(nameof(spriteManager));
+            this.heightRetriever = heightRetriever ?? throw new ArgumentNullException(nameof(heightRetriever));
+            setting = Settings.GetSetting(backing.InteractableType);
         }
 
         public GameObject gameObject { get => backing.gameObject; set => backing.gameObject = value; }
-
         public InteractableKind InteractableType { get => backing.InteractableType; set => backing.InteractableType = value; }
-
-        public RectTransform MinimapTransform { get => backing.MinimapTransform; set => backing.MinimapTransform = value; }
-
         public bool DynamicObject { get => backing.DynamicObject; set => backing.DynamicObject = value; }
-
         public bool Active => backing.Active;
-
-        private bool Initialized()
+        public RectTransform MinimapTransform
         {
-            // minimap transform, is lazily loaded by minimap at runtime and isn't available
-            // until first update call after the scan that produced this object was created
-            if (backing.MinimapTransform is null)
+            get => backing.MinimapTransform;
+            set
             {
-                return false;
+                if (ReferenceEquals(backing.MinimapTransform, value))
+                    return;
+                arrowTransform = null;
+                arrowImage = null;
+                direction = 0;
+                backing.MinimapTransform = value;
             }
-
-            // only run this method once
-            if (flag_initialized)
-            {
-                return true;
-            }
-
-            // rotate down
-            InteractibleSetting setting = Settings.GetSetting(backing.InteractableType);
-
-            if (setting.Config.EnabledElevationMarker.Value is false)
-            {
-                flag_disabled = true;
-                return false;
-            }
-
-            Sprite arrowSprite = spriteManager.GetOrCache(Settings.Icons.Arrow);
-
-            arrow = Helpers.Sprites.CreateIcon(arrowSprite, 
-                setting.Config.ElevationMarkerWidth.Value, 
-                setting.Config.ElevationMarkerHeight.Value, 
-                setting.Config.ElevationMarkerColor.Value);
-
-            // attach arrow
-            Helpers.Transforms.SetParent(arrow.transform, backing.MinimapTransform);
-
-            arrowTransform = arrow.transform;
-
-            // move arrow
-            arrowTransform.localPosition += new Vector3(setting.Config.ElevationMarkerOffset.Value.x, setting.Config.ElevationMarkerOffset.Value.y, 0);
-
-            // rotate arrow upright
-            arrowTransform.localRotation = upDirection;
-
-            // hide arrow
-            arrow.SetActive(false);
-
-            flag_initialized = true;
-
-            return true;
         }
 
-        public void CheckActive() 
+        public void CheckActive()
         {
-            // check color from backing object
             backing.CheckActive();
-
-            // if the config does not allow arrows don't bother trying to update it, it doesn't exist
-            if (flag_disabled)
-            {
-                return;
-            }
-
-            if (Initialized())
-            {
-                // check if we need to show an arrow denoting height
-                if (backing.Active)
-                {
-                    // since the object is active
-                    // show arrow if player is too smol
-                    float y = heightRetriever();
-
-                    if (y > (backing.gameObject.transform.position.y + margin))
-                    {
-                        // item is below player show down arrow
-                        arrow.SetActive(true);
-
-                        arrowTransform.localRotation = downDirection;
-                    }
-                    else if (y < (backing.gameObject.transform.position.y - margin))
-                    {
-                        // item is above player show up arrow
-                        arrow.SetActive(true);
-
-                        arrowTransform.localRotation = upDirection;
-                    }
-                    else
-                    {
-                        arrow.SetActive(false);
-                    }
-                }
-                // hide the arrow when the object is no longer active
-                else if (arrow.activeSelf)
-                {
-                    arrow.SetActive(false);
-                }
-            }
+            if (gameObject)
+                UpdateElevation(heightRetriever(), gameObject.transform.position.y, Settings.ElevationThreshold);
         }
 
-        public void Destroy() => backing.Destroy();
+        public void UpdateElevation(float viewerHeight, float objectHeight, float threshold)
+        {
+            if (!MinimapTransform || !setting.ElevationMarkerEnabled)
+                return;
+
+            int nextDirection = !Active ? 0 : objectHeight > viewerHeight + threshold ? 1 : objectHeight < viewerHeight - threshold ? -1 : 0;
+            if (!arrowTransform)
+            {
+                // Reuse the arrow when its icon has returned from the pool.
+                arrowTransform = MinimapTransform.Find("Elevation");
+                if (!arrowTransform && nextDirection == 0)
+                    return;
+                if (!arrowTransform)
+                {
+                    GameObject arrow = Helpers.Sprites.CreateIcon(spriteManager.GetOrCache(Settings.Icons.Arrow),
+                        setting.ElevationMarkerDimensions.Width, setting.ElevationMarkerDimensions.Height, setting.ElevationMarkerColor);
+                    arrow.name = "Elevation";
+                    Helpers.Transforms.SetParent(arrow.transform, MinimapTransform);
+                    arrow.transform.localPosition = new Vector3(setting.ElevationMarkerOffset.Width, setting.ElevationMarkerOffset.Height, 0f);
+                    arrowTransform = arrow.transform;
+                }
+                arrowImage = arrowTransform.GetComponent<Image>();
+                direction = int.MinValue;
+            }
+
+            if (direction == nextDirection)
+                return;
+            direction = nextDirection;
+            arrowTransform.gameObject.SetActive(direction != 0);
+            if (direction != 0)
+                arrowTransform.localRotation = Quaternion.Euler(0f, 0f, direction > 0 ? -90f : 90f);
+        }
+
+        public void Destroy()
+        {
+            backing.Destroy();
+            arrowTransform = null;
+            arrowImage = null;
+            direction = 0;
+        }
+
+        public void RefreshSprite()
+        {
+            if (arrowImage)
+                arrowImage.sprite = spriteManager.GetOrCache(Settings.Icons.Arrow);
+        }
     }
 }

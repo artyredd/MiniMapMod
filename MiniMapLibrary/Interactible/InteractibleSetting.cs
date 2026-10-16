@@ -8,6 +8,7 @@ namespace MiniMapLibrary
 {
     public class InteractibleSetting
     {
+        public bool Enabled { get; set; } = true;
         public Dimension2D Dimensions { get; set; }
         public Color ActiveColor { get; set; }
         public Color InactiveColor { get; set; }

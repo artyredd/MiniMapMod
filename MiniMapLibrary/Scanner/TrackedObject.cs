@@ -1,101 +1,100 @@
-﻿using MiniMapLibrary;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
-using MiniMapLibrary.Scanner;
 
 namespace MiniMapLibrary.Scanner
 {
     public class TrackedObject<T> : ITrackedObject
     {
+        private RectTransform minimapTransform;
+        private Image minimapImage;
+        private Color appliedColor;
+        private bool hasAppliedColor;
+        private bool reportedFailure;
+
         public GameObject gameObject { get; set; }
-
-        public RectTransform MinimapTransform { get; set; }
-
-        public bool DynamicObject { get; set; } = false;
-
-        public T BackingObject { get; set; }
+        public RectTransform MinimapTransform
+        {
+            get => minimapTransform;
+            set
+            {
+                if (ReferenceEquals(minimapTransform, value))
+                    return;
+                minimapTransform = value;
+                minimapImage = null;
+                hasAppliedColor = false;
+            }
+        }
 
         public Image MinimapImage
         {
             get
             {
-                if (_MinimapImage is null && MinimapTransform != null)
-                {
-                    _MinimapImage = MinimapTransform.GetComponent<Image>();
-                }
-
-                return _MinimapImage;
+                if (!minimapImage && minimapTransform)
+                    minimapImage = minimapTransform.GetComponent<Image>();
+                return minimapImage;
             }
-            set => _MinimapImage = value;
+            set { minimapImage = value; hasAppliedColor = false; }
         }
 
-        private Image _MinimapImage;
-
+        public bool DynamicObject { get; set; }
+        public T BackingObject { get; set; }
         public InteractableKind InteractableType { get; set; }
-
         public Func<T, bool> ActiveChecker { get; set; }
-
         public bool Active { get; private set; } = true;
-
-        private bool PreviousActive = true;
+        public ILogger ErrorLogger { get; set; }
 
         public TrackedObject(InteractableKind interactableType, GameObject gameObject, RectTransform minimapTransform)
         {
+            InteractableType = interactableType;
             this.gameObject = gameObject;
             MinimapTransform = minimapTransform;
-            InteractableType = interactableType;
         }
 
         public void Destroy()
         {
-            try
-            {
-                GameObject.Destroy(MinimapTransform.gameObject);
-            }
-            catch (Exception)
-            {
-                // intentionally eat the exception while trying to destroy the gameobject
-                // if other mods or the scene destroys the UI we dont want to throw exceptions
-                // this is expected
-            }
+            if (minimapTransform)
+                UnityEngine.Object.Destroy(minimapTransform.gameObject);
+            MinimapTransform = null;
         }
 
         public void CheckActive()
         {
-            if (BackingObject is null)
+            if (!gameObject || BackingObject == null || (BackingObject is UnityEngine.Object source && !source))
             {
                 Active = false;
-
-                UpdateColor();
-
-                return;
             }
-
-            try
+            else
             {
-                Active = ActiveChecker?.Invoke(BackingObject) ?? false;
-            }
-            catch (Exception)
-            {
-                // intentionally eat the exception while trying to destroy the gameobject
-                // if other mods or the scene destroys the UI we dont want to throw exceptions
-                // this is expected
-                Active = false;
+                try
+                {
+                    Active = ActiveChecker?.Invoke(BackingObject) ?? true;
+                }
+                catch (Exception exception)
+                {
+                    Active = false;
+                    if (!reportedFailure)
+                    {
+                        reportedFailure = true;
+                        ErrorLogger?.LogException(exception, $"Availability check failed for {InteractableType}.");
+                    }
+                }
             }
 
-            UpdateColor();
+            ApplyColor();
         }
 
-        private void UpdateColor()
+        public void ApplyColor()
         {
-            if (PreviousActive != Active)
+            Image image = MinimapImage;
+            if (!image)
+                return;
+            Color color = Settings.GetColor(InteractableType, Active);
+            if (!hasAppliedColor || appliedColor != color)
             {
-                PreviousActive = Active;
-
-                MinimapImage.color = Settings.GetColor(InteractableType, Active);
+                image.color = color;
+                appliedColor = color;
+                hasAppliedColor = true;
             }
         }
     }

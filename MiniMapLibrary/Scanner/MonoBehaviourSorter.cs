@@ -9,21 +9,27 @@ namespace MiniMapLibrary.Scanner
     public class MonoBehaviourSorter<T> : IInteractibleSorter<T>
     {
         private readonly ISorter<T>[] sorters;
+        private readonly Func<T, bool>[] activeCheckers;
+        private static readonly Func<T, bool> AlwaysActive = _ => true;
 
         public MonoBehaviourSorter(ISorter<T>[] sorters)
         {
-            this.sorters = sorters;
+            this.sorters = sorters ?? throw new ArgumentNullException(nameof(sorters));
+            activeCheckers = new Func<T, bool>[sorters.Length];
+            for (int i = 0; i < sorters.Length; i++)
+                activeCheckers[i] = sorters[i].CheckActive;
         }
 
         public bool TrySort(T value, out InteractableKind kind, out GameObject? gameObject, out Func<T, bool> activeChecker)
         {
             kind = InteractableKind.none;
             gameObject = null;
-            activeChecker = (x) => true;
+            activeChecker = AlwaysActive;
 
             // iterate though our sorters
-            foreach (ISorter<T> sorter in sorters)
+            for (int i = 0; i < sorters.Length; i++)
             {
+                ISorter<T> sorter = sorters[i];
                 // check if the provided value meets the criteria to be of this sorters
                 // kind
                 if (sorter.IsKind(value))
@@ -31,9 +37,9 @@ namespace MiniMapLibrary.Scanner
                     // set the out kind and grab the gameobject
                     kind = sorter.Kind;
                     gameObject = sorter.GetGameObject(value);
-                    activeChecker = sorter.CheckActive;
+                    activeChecker = activeCheckers[i];
 
-                    return true;
+                    return gameObject != null;
                 }
             }
 
